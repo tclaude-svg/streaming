@@ -5,12 +5,29 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import S from '../src/strings.js';
 import * as R from '../src/render.js';
+import { buildIcs } from '../src/ics.js';
+import { fetchSupabaseGames } from '../src/data.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 const cfg = JSON.parse(await readFile(join(root, 'site.config.json'), 'utf8'));
 const teamsList = JSON.parse(await readFile(join(root, 'data/teams.json'), 'utf8'));
-const { games } = JSON.parse(await readFile(join(root, 'data/games.json'), 'utf8'));
+let { games } = JSON.parse(await readFile(join(root, 'data/games.json'), 'utf8'));
+
+// Database settings (public by design: the anon key can only do what row level security allows).
+// Environment variables win over site.config.json so hosting can set them without a commit.
+const supabase = {
+  url: process.env.SUPABASE_URL || cfg.supabase?.url || null,
+  anonKey: process.env.SUPABASE_ANON_KEY || cfg.supabase?.anonKey || null
+};
+if (supabase.url && supabase.anonKey) {
+  try {
+    games = await fetchSupabaseGames(supabase);
+    console.log(`Read ${games.length} games from the database`);
+  } catch (e) {
+    console.warn(`Database read failed (${e.message}); using data/games.json`);
+  }
+}
 const teams = R.teamMap(teamsList);
 
 await rm(dist, { recursive: true, force: true });
@@ -21,16 +38,17 @@ const write = async (rel, content) => {
   await mkdir(dirname(p), { recursive: true });
   await writeFile(p, content);
 };
+const sig = R.listSig(games);
 const page = (path, opts) => write(join(path, 'index.html'), R.layout({ siteUrl: cfg.siteUrl, path, ...opts }));
 
 // --- pages
-await page('/', { title: S.siteName, body: R.homeBody(games, teams, { heroVideo: cfg.heroVideo }), bodyClass: 'home', tone: cfg.heroTone || 'dark' });
-await page('/schedule/', { title: S.schedule.title, body: R.scheduleBody(games, teams), active: 'schedule' });
-await page('/replays/', { title: S.replays.title, body: R.replaysBody(games, teams), active: 'replays' });
-await page('/teams/', { title: S.teams.title, body: R.teamsBody(games, teams), active: 'teams' });
+await page('/', { title: S.siteName, body: R.homeBody(games, teams, { heroVideo: cfg.heroVideo }), bodyClass: 'home', tone: cfg.heroTone || 'dark', page: 'home', sig });
+await page('/schedule/', { title: S.schedule.title, body: R.scheduleBody(games, teams), active: 'schedule', page: 'schedule', sig });
+await page('/replays/', { title: S.replays.title, body: R.replaysBody(games, teams), active: 'replays', page: 'replays', sig });
+await page('/teams/', { title: S.teams.title, body: R.teamsBody(games, teams), active: 'teams', page: 'teams', sig });
 await page('/about/', { title: S.about.title, body: R.aboutBody(), active: 'about' });
 for (const t of teamsList) {
-  await page(`/teams/${t.slug}/`, { title: R.teamLabelLong(t), body: R.teamBody(t, games, teams), active: 'teams' });
+  await page(`/teams/${t.slug}/`, { title: R.teamLabelLong(t), body: R.teamBody(t, games, teams), active: 'teams', page: 'team', arg: t.slug, sig });
 }
 for (const g of games) {
   const t = teams[g.team];
@@ -44,32 +62,34 @@ for (const g of games) {
 }
 
 // --- calendar files (one per game)
-const utc = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-const fold = (s) => s.replace(/([,;\\])/g, '\\$1');
 for (const g of games) {
-  const start = new Date(g.start);
-  const end = new Date(start.getTime() + 2 * 3600 * 1000);
-  const t = teams[g.team];
-  const ics = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${cfg.name}//EN`, 'CALSCALE:GREGORIAN',
-    'BEGIN:VEVENT',
-    `UID:${g.id}@${new URL(cfg.siteUrl).hostname}`,
-    `DTSTAMP:${utc(new Date())}`,
-    `DTSTART:${utc(start)}`, `DTEND:${utc(end)}`,
-    `SUMMARY:${fold(`${R.gameTitle(g)} (${R.teamLabel(t)})`)}`,
-    `LOCATION:${fold(g.venue)}`,
-    `DESCRIPTION:${fold(`Watch live: ${cfg.siteUrl}/game/${g.id}/`)}`,
-    `URL:${cfg.siteUrl}/game/${g.id}/`,
-    'END:VEVENT', 'END:VCALENDAR'
-  ].join('\r\n') + '\r\n';
-  await write(`calendar/${g.id}.ics`, ics);
+  await write(`calendar/${g.id}.ics`, buildIcs(g, teams[g.team], { name: cfg.name, siteUrl: cfg.siteUrl }));
 }
+
+// --- admin page (staff only, not linked from the site, kept out of search engines)
+await page('/admin/', {
+  title: S.admin.title,
+  noindex: true,
+  script: '/js/admin.js',
+  body: `<div class="wrap page admin" id="admin-root"><noscript><p class="empty">JavaScript is needed for the admin area.</p></noscript></div>`
+});
+
+// --- 404 page; also renders game pages created after this build (see src/fallback.js)
+await write('404.html', R.layout({
+  siteUrl: cfg.siteUrl,
+  path: '/404.html',
+  title: S.notFound.title,
+  noindex: true,
+  script: '/js/fallback.js',
+  body: `<div class="wrap page narrow" id="nf"><h1 class="page-title">${S.notFound.title}</h1><p class="lede">${S.notFound.loading}</p></div>`
+}));
 
 // --- static files
 await cp(join(root, 'src/styles.css'), join(dist, 'css/styles.css'));
-for (const f of ['app.js', 'render.js', 'strings.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
+for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admin.js', 'fallback.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
 await cp(join(root, 'src/assets'), join(dist, 'assets'), { recursive: true });
 await cp(join(root, 'data'), join(dist, 'data'), { recursive: true });
+await write('config.json', JSON.stringify({ name: cfg.name, siteUrl: cfg.siteUrl, heroVideo: cfg.heroVideo, supabase: supabase.url && supabase.anonKey ? supabase : null }, null, 2));
 await write('robots.txt', `User-agent: *\nAllow: /\n`);
 
 console.log(`Built ${games.length} games, ${teamsList.length} teams -> dist/`);

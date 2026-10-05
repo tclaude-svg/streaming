@@ -3,5 +3,9 @@
   "name": "TIS Owls Live",
   "timezone": "Asia/Tashkent",
   "heroVideo": null,
-  "heroTone": "dark"
+  "heroTone": "dark",
+  "supabase": {
+    "url": null,
+    "anonKey": null
+  }
 }

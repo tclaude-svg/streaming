@@ -182,7 +182,7 @@ const navItems = [
   { key: 'about', href: '/about/', icon: icon.info }
 ];
 
-export function layout({ title, description, path, body, active, siteUrl, ogTitle, bodyClass = '', tone = 'dark' }) {
+export function layout({ title, description, path, body, active, siteUrl, ogTitle, bodyClass = '', tone = 'dark', noindex = false, script = '/js/app.js', page = '', arg = '', sig = '' }) {
   const full = title === S.siteName ? title : `${title} · ${S.siteName}`;
   const url = siteUrl + path;
   const desc = description || S.metaDescription;
@@ -195,7 +195,7 @@ export function layout({ title, description, path, body, active, siteUrl, ogTitl
 <meta name="description" content="${esc(desc)}">
 <meta name="theme-color" content="#0a0f1a">
 <meta name="color-scheme" content="dark">
-<link rel="canonical" href="${esc(url)}">
+${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ''}<link rel="canonical" href="${esc(url)}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(S.siteName)}">
 <meta property="og:title" content="${esc(ogTitle || full)}">
@@ -209,7 +209,7 @@ export function layout({ title, description, path, body, active, siteUrl, ogTitl
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/css/styles.css">
-<script type="module" src="/js/app.js"></script>
+<script type="module" src="${esc(script)}"></script>
 </head>
 <body class="${esc(bodyClass)}" data-tone="${esc(tone)}">
 <a class="skip" href="#main">${S.skip}</a>
@@ -220,7 +220,7 @@ export function layout({ title, description, path, body, active, siteUrl, ogTitl
   </nav>
   <a class="btn-pill topcta" href="/schedule/">${S.cta}</a>
 </header>
-<main id="main">
+<main id="main"${page ? ` data-page="${esc(page)}" data-arg="${esc(arg)}" data-sig="${esc(sig)}"` : ''}>
 ${body}
 </main>
 <footer class="footer">
@@ -242,18 +242,11 @@ const section = (title, inner, more) =>
 const emptyMsg = (text) => `<p class="empty">${text}</p>`;
 const filterEmpty = `<p class="empty" data-empty hidden>${S.filters.none}</p>`;
 
-export function homeBody(games, teams, opts = {}) {
+export function homeLists(games, teams) {
   const featured = games.find((g) => g.status === 'live') || upcoming(games).find((g) => g.status === 'scheduled');
   const ups = upcoming(games).filter((g) => g !== featured).slice(0, 6);
   const reps = finished(games).slice(0, 6);
-  const video = opts.heroVideo
-    ? `<video class="hero-video" autoplay muted loop playsinline poster="/assets/hero-pitch.svg"><source src="${esc(opts.heroVideo)}" type="video/mp4"></video>`
-    : '';
-  return `<section class="hero" data-region="hero" data-sig="${esc(heroSig(games))}">
-  <div class="hero-media" aria-hidden="true">${video}</div>
-  <div class="hero-content" data-slot>${heroInner(games, teams)}</div>
-</section>
-<div class="wrap" data-filterable>
+  return `<div class="wrap" data-filterable data-rerender>
   ${filterBar({ level: false })}
   ${section(S.home.thisWeek, `<div class="rail" data-list>${ups.map((g) => gameCard(g, teams)).join('') || emptyMsg(S.schedule.empty)}</div>`, `<a class="more" href="/schedule/">${S.home.allSchedule}</a>`)}
   ${section(S.home.latestReplays, `<div class="rail" data-list>${reps.map((g) => gameCard(g, teams)).join('') || emptyMsg(S.replays.empty)}</div>`, `<a class="more" href="/replays/">${S.home.allReplays}</a>`)}
@@ -261,9 +254,20 @@ export function homeBody(games, teams, opts = {}) {
 </div>`;
 }
 
+export function homeBody(games, teams, opts = {}) {
+  const video = opts.heroVideo
+    ? `<video class="hero-video" autoplay muted loop playsinline poster="/assets/hero-pitch.svg"><source src="${esc(opts.heroVideo)}" type="video/mp4"></video>`
+    : '';
+  return `<section class="hero" data-region="hero" data-sig="${esc(heroSig(games))}">
+  <div class="hero-media" aria-hidden="true">${video}</div>
+  <div class="hero-content" data-slot>${heroInner(games, teams)}</div>
+</section>
+${homeLists(games, teams)}`;
+}
+
 export function scheduleBody(games, teams) {
   const ups = upcoming(games);
-  return `<div class="wrap page" data-filterable>
+  return `<div class="wrap page" data-filterable data-rerender>
   <h1 class="page-title">${S.schedule.title}</h1>
   <p class="lede">${S.schedule.intro}</p>
   <div data-region="live-strip" class="live-strip" hidden></div>
@@ -275,7 +279,7 @@ export function scheduleBody(games, teams) {
 
 export function replaysBody(games, teams) {
   const reps = finished(games);
-  return `<div class="wrap page" data-filterable>
+  return `<div class="wrap page" data-filterable data-rerender>
   <h1 class="page-title">${S.replays.title}</h1>
   <p class="lede">${S.replays.intro}</p>
   ${filterBar({ level: true })}
@@ -294,7 +298,7 @@ export function teamsBody(games, teams) {
   ${owlEye('watermark')}
 </a>`;
   });
-  return `<div class="wrap page">
+  return `<div class="wrap page" data-rerender>
   <h1 class="page-title">${S.teams.title}</h1>
   <div class="grid">${cards.join('')}</div>
 </div>`;
@@ -304,7 +308,7 @@ export function teamBody(t, games, teams) {
   const mine = games.filter((g) => g.team === t.slug);
   const ups = upcoming(mine);
   const res = finished(mine);
-  return `<div class="wrap page">
+  return `<div class="wrap page" data-rerender>
   <p class="crumb"><a href="/teams/">${S.teams.title}</a></p>
   <h1 class="page-title">${esc(teamLabelLong(t))}</h1>
   ${section(S.teams.upcoming, `<div class="grid">${ups.map((g) => gameCard(g, teams)).join('') || emptyMsg(S.teams.noNext)}</div>`)}
@@ -327,7 +331,7 @@ export function gameBody(g, games, teams) {
       <p class="meta">${whenHtml(g)} · ${esc(g.venue)}</p>
     </div>
     <div class="game-actions">
-      <a class="btn btn-ghost" href="/calendar/${esc(g.id)}.ics">${icon.cal}${S.game.addToCalendar}</a>
+      <a class="btn btn-ghost" href="/calendar/${esc(g.id)}.ics" data-ics="${esc(g.id)}">${icon.cal}${S.game.addToCalendar}</a>
       <button class="btn btn-ghost" type="button" data-share data-title="${esc(gameTitle(g))}" data-copied="${S.game.copied}">${icon.share}<span>${S.game.share}</span></button>
     </div>
   </div>
@@ -343,4 +347,30 @@ export function aboutBody() {
   ${block(a.howTitle, a.how)}${block(a.whoTitle, a.who)}${block(a.contactTitle, a.contact)}${block(a.privacyTitle, a.privacy)}${block(a.takedownTitle, a.takedown)}
   <p class="about-tag">${S.tagline}</p>
 </div>`;
+}
+
+/* ---------- re-rendering lists in the browser ---------- */
+
+// Fingerprint of everything the list pages show. Live scores and stream links are left out on
+// purpose: they have their own regions, so a score change never rebuilds the whole page.
+export function listSig(games) {
+  const s = games
+    .map((g) => [g.id, g.team, g.opponent, g.venue, g.start, g.status, g.status === 'final' ? `${g.homeScore}-${g.awayScore}` : '', g.replayId || '', g.cover || ''].join('|'))
+    .sort()
+    .join('\n');
+  let h = 5381;
+  for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+// The part of a page that depends on the game list (the element marked data-rerender).
+export function regionHtml(page, arg, games, teams) {
+  switch (page) {
+    case 'home': return homeLists(games, teams);
+    case 'schedule': return scheduleBody(games, teams);
+    case 'replays': return replaysBody(games, teams);
+    case 'teams': return teamsBody(games, teams);
+    case 'team': return teams[arg] ? teamBody(teams[arg], games, teams) : null;
+    default: return null;
+  }
 }

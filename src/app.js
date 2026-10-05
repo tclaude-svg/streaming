@@ -1,19 +1,23 @@
 import S from './strings.js';
 import {
-  TZ, upcoming, teamMap, heroInner, heroSig, scoreboardInner, videoInner, videoKey, gameUrl, gameTitle, liveBadge, esc
+  TZ, upcoming, teamMap, heroInner, heroSig, scoreboardInner, videoInner, videoKey, gameUrl, gameTitle, liveBadge, esc,
+  listSig, regionHtml
 } from './render.js';
+import { loadConfig, loadGames, loadTeams } from './data.js';
+import { buildIcs } from './ics.js';
 
 const POLL_MS = 30000;
 const params = new URLSearchParams(location.search);
 
 /* ---------- data ---------- */
+let configPromise;
+const getConfig = () => (configPromise ||= loadConfig());
+
+// Games come from the database when one is configured (config.json), otherwise from data/games.json.
 async function loadData() {
-  // TODO: replace these two files with the Supabase read endpoint (same shape).
-  const [g, t] = await Promise.all([
-    fetch('/data/games.json', { cache: 'no-store' }).then((r) => r.json()),
-    fetch('/data/teams.json', { cache: 'no-store' }).then((r) => r.json())
-  ]);
-  let games = g.games;
+  const cfg = await getConfig();
+  const [all, t] = await Promise.all([loadGames(cfg), loadTeams()]);
+  let games = all;
   // Review helpers: ?demo=live shows the next game as live, ?demo=empty shows no fixtures.
   const demo = params.get('demo');
   if (demo === 'live') {
@@ -27,6 +31,22 @@ async function loadData() {
 
 /* ---------- regions that refresh themselves ---------- */
 function refresh({ games, teams }) {
+  // Lists were pre-rendered at build time. When games were added or changed since then
+  // (through the admin area), rebuild just the part of the page that shows them.
+  const main = document.getElementById('main');
+  if (main?.dataset.page) {
+    const sig = listSig(games);
+    if (main.dataset.sig !== sig) {
+      const region = main.querySelector('[data-rerender]');
+      const html = regionHtml(main.dataset.page, main.dataset.arg, games, teams);
+      if (region && html) {
+        region.outerHTML = html;
+        setupFilters();
+      }
+      main.dataset.sig = sig;
+    }
+  }
+
   const hero = document.querySelector('[data-region="hero"]');
   // Re-render only when something changed, so the entrance animation does not replay every poll.
   if (hero && hero.dataset.sig !== heroSig(games)) {
@@ -84,7 +104,8 @@ function localTimes() {
 /* ---------- filters (sport and level chips) ---------- */
 function setupFilters() {
   document.querySelectorAll('[data-filterable]').forEach((root) => {
-    const state = { sport: params.get('sport') || '', level: params.get('level') || '' };
+    const q = new URLSearchParams(location.search);
+    const state = { sport: q.get('sport') || '', level: q.get('level') || '' };
     const chips = root.querySelectorAll('.chip');
     const apply = () => {
       chips.forEach((c) => c.setAttribute('aria-pressed', String((state[c.dataset.group] || '') === c.dataset.value)));
@@ -132,9 +153,37 @@ function setupShare() {
   });
 }
 
+/* ---------- calendar file ---------- */
+// Games added after the last build have no pre-made .ics file, so make one in the browser.
+function setupCalendar() {
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('a[data-ics]');
+    if (!a) return;
+    e.preventDefault();
+    try {
+      const head = await fetch(a.href, { method: 'HEAD' });
+      if (head.ok && (head.headers.get('content-type') || '').includes('text/calendar')) { location.href = a.href; return; }
+    } catch { /* fall through to the in-browser file */ }
+    try {
+      const cfg = await getConfig();
+      const { games, teams } = await loadData();
+      const g = games.find((x) => x.id === a.dataset.ics);
+      if (!g) return;
+      const ics = buildIcs(g, teams[g.team], { name: cfg.name || 'TIS Owls Live', siteUrl: cfg.siteUrl || location.origin });
+      const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+      const dl = Object.assign(document.createElement('a'), { href: url, download: `${g.id}.ics` });
+      document.body.appendChild(dl);
+      dl.click();
+      dl.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch { /* nothing more to try */ }
+  });
+}
+
 /* ---------- boot ---------- */
 setupFilters();
 setupShare();
+setupCalendar();
 tick();
 localTimes();
 setInterval(tick, 1000);

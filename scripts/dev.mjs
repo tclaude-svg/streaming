@@ -25,7 +25,9 @@ createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
     res.end(body);
   } catch {
-    res.writeHead(404, { 'content-type': 'text/plain' });
-    res.end('Not found');
+    // Like most static hosts: unknown addresses get 404.html with a 404 status.
+    const notFound = await readFile(join(dist, '404.html')).catch(() => Buffer.from('Not found'));
+    res.writeHead(404, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(notFound);
   }
 }).listen(port, () => console.log(`Dev server: http://localhost:${port}`));
