@@ -26,6 +26,7 @@ or `?demo=empty` to see the no-fixtures state.
   live regions (hero, score banner, video) every 30 seconds.
 - `src/strings.js` holds all interface text (Russian and Korean come later as extra files).
 - `scripts/build.mjs` generates pages, one `.ics` calendar file per game, and copies assets.
+- Hero video: set `heroVideo` and `heroTone` in `site.config.json`; see `docs/DESIGN.md`.
 - Comments and live chat are not part of the site; YouTube embeds use the privacy-enhanced domain.
 
 ## Pages

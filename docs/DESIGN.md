@@ -1,6 +1,6 @@
 # Design notes
 
-## Direction
+## Direction (updated with the supplied "Editorial Cinematic" spec)
 Dark, content-first, with one blue accent and gold reserved for scores and live moments.
 The video and the score are the stars; everything else stays quiet.
 
@@ -31,3 +31,25 @@ empty-video state.
 ## Photos
 Cards have a gradient placeholder. Add `cover` image paths in `data/games.json` (or a
 YouTube `replayId`, which uses the video thumbnail) once photos are approved.
+
+## Editorial Cinematic spec: what was applied and what was adapted
+Applied as written: Instrument Serif (400) for display with tight tracking (H1 80px desktop,
+48px mobile, line-height 0.95, letter-spacing -0.031em, which equals -2.46px at 80px), Inter for
+UI, centered full-screen hero with a video layer, 3-column nav (logo, four links, pill button),
+fade-rise entrance (0.8s ease-out, 0.2s stagger, 24px), pill buttons that scale to 1.03 on hover,
+HSL(201,100%,13%) fallback behind the media, 0.2 dark overlay on the media.
+
+Adapted for this site:
+- The spec's navy text (#0f172a) and black pill assume a bright video. A dark sports site needs
+  light text, so the default tone is `dark` (white text, white pill). Set `"heroTone": "light"`
+  in `site.config.json` to get the spec's navy text and black pill for bright footage.
+- Gold stays reserved for scores and LIVE.
+- The trademark symbol on the logo was left out (TIS Owls Live is not a registered mark).
+- Condensed Barlow was dropped, so the site still uses exactly two fonts.
+
+## Visuals
+- `src/assets/hero-pitch.svg`: drawn night pitch with two floodlight beams (placeholder for
+  real footage). To use video, put an mp4 in `src/assets/` and set `"heroVideo": "/assets/your.mp4"`.
+- Cards without a photo show line art of the sport's court or pitch (football, basketball, volleyball).
+- Recommendation: real, consent-approved footage or photos of TIS games beat AI-generated
+  athletes. Avoid realistic AI images of children on this site.
