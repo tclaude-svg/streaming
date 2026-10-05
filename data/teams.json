@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "football-varsity",
+    "sport": "football",
+    "level": "varsity"
+  },
+  {
+    "slug": "football-jv",
+    "sport": "football",
+    "level": "jv"
+  },
+  {
+    "slug": "basketball-varsity",
+    "sport": "basketball",
+    "level": "varsity"
+  },
+  {
+    "slug": "basketball-jv",
+    "sport": "basketball",
+    "level": "jv"
+  },
+  {
+    "slug": "volleyball-varsity",
+    "sport": "volleyball",
+    "level": "varsity"
+  },
+  {
+    "slug": "volleyball-jv",
+    "sport": "volleyball",
+    "level": "jv"
+  }
+]
