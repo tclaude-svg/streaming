@@ -11,6 +11,16 @@ for _ in range(50):
     except Exception: time.sleep(0.2)
 
 BASE = f'http://localhost:{PORT}'
+
+def wait_until(cond, timeout=6.0):
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            if cond(): return True
+        except Exception: pass
+        time.sleep(0.1)
+    return False
+
 results = []
 def check(name, cond, extra=''):
     results.append((name, bool(cond)))
@@ -70,7 +80,7 @@ try:
         live.locator('[data-act=score][data-side=away][data-delta="-1"]').click()
         check('score cannot go below zero', live.locator('[data-out=away]').inner_text() == '0')
         live.locator('[data-act=score][data-side=away][data-delta="1"]').click()
-        page.wait_for_timeout(700)
+        wait_until(lambda: next(x for x in json.loads(page.evaluate("localStorage.getItem('tis-owls-admin-draft-v1')")) if x['opponent'] == 'Test Opponent')['awayScore'] == 1)
         saved = json.loads(page.evaluate("localStorage.getItem('tis-owls-admin-draft-v1')"))
         g = next(x for x in saved if x['opponent'] == 'Test Opponent')
         check('debounced score saved (2-1, live)', (g['homeScore'], g['awayScore'], g['status']) == (2, 1, 'live'), g)

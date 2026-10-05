@@ -13,7 +13,7 @@ import {
 
 const T = S.admin;
 const { esc } = R;
-const root = document.getElementById('admin-root');
+let root; // the element the admin renders into (set by mountAdmin)
 
 /* ---------- back ends ---------- */
 
@@ -336,7 +336,7 @@ async function submitForm(form) {
   } catch (e) { handleError(e); }
 }
 
-root.addEventListener('click', async (e) => {
+async function onClick(e) {
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const { act, id } = el.dataset;
@@ -356,9 +356,9 @@ root.addEventListener('click', async (e) => {
     message = '';
     render();
   } else if (act === 'signout') { backend.signOut(); signInError = ''; render(); }
-});
+}
 
-root.addEventListener('submit', async (e) => {
+async function onSubmit(e) {
   e.preventDefault();
   if (e.target.matches('[data-form]')) await submitForm(e.target);
   else if (e.target.matches('[data-signin]')) {
@@ -373,11 +373,11 @@ root.addEventListener('submit', async (e) => {
     } catch (err) { signInError = `${T.signInFailed} ${err.message}`; }
     render();
   }
-});
+}
 
 /* ---------- boot ---------- */
 
-(async function boot() {
+async function boot() {
   root.textContent = T.loading;
   try {
     const cfg = await loadConfig();
@@ -390,4 +390,21 @@ root.addEventListener('submit', async (e) => {
     if (backend?.mode === 'database' && e.message === 'signed-out') { render(); return; }
     root.innerHTML = `<p class="adm-error" role="alert">${esc(`${T.loadFailed} ${e.message}`)}</p>`;
   }
-})();
+}
+
+export function mountAdmin(el) {
+  root = el;
+  backend = undefined;
+  games = [];
+  view = { name: 'list', id: null };
+  message = '';
+  formError = null;
+  signInError = '';
+  root.addEventListener('click', onClick);
+  root.addEventListener('submit', onSubmit);
+  return boot();
+}
+
+// On the real /admin/ page the element exists at load time; the preview bundle mounts it itself.
+const adminRoot = typeof document === 'undefined' ? null : document.getElementById('admin-root');
+if (adminRoot && !globalThis.__TIS_PREVIEW__) mountAdmin(adminRoot);

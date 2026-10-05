@@ -126,9 +126,11 @@ function setupFilters() {
     chips.forEach((c) =>
       c.addEventListener('click', () => {
         state[c.dataset.group] = c.dataset.value;
-        const u = new URL(location.href);
-        ['sport', 'level'].forEach((k) => (state[k] ? u.searchParams.set(k, state[k]) : u.searchParams.delete(k)));
-        history.replaceState(null, '', u);
+        try {
+          const u = new URL(location.href);
+          ['sport', 'level'].forEach((k) => (state[k] ? u.searchParams.set(k, state[k]) : u.searchParams.delete(k)));
+          history.replaceState(null, '', u);
+        } catch { /* some embedded contexts do not allow changing the address */ }
         apply();
       })
     );
@@ -161,6 +163,7 @@ function setupCalendar() {
     if (!a) return;
     e.preventDefault();
     try {
+      if (globalThis.__TIS_PREVIEW__) throw new Error('no server in the single-file preview');
       const head = await fetch(a.href, { method: 'HEAD' });
       if (head.ok && (head.headers.get('content-type') || '').includes('text/calendar')) { location.href = a.href; return; }
     } catch { /* fall through to the in-browser file */ }
@@ -181,15 +184,22 @@ function setupCalendar() {
 }
 
 /* ---------- boot ---------- */
-setupFilters();
-setupShare();
-setupCalendar();
-tick();
-localTimes();
-setInterval(tick, 1000);
+// The preview bundle (demo/) sets __TIS_PREVIEW__ and drives these pieces itself, page by page.
+export { setupFilters, setupShare, setupCalendar, tick, localTimes, refresh, loadData };
 
-if (document.querySelector('[data-region]')) {
-  const run = () => loadData().then(refresh).catch(() => {});
-  run();
-  setInterval(run, POLL_MS);
+export function boot() {
+  setupFilters();
+  setupShare();
+  setupCalendar();
+  tick();
+  localTimes();
+  setInterval(tick, 1000);
+
+  if (document.querySelector('[data-region]')) {
+    const run = () => loadData().then(refresh).catch(() => {});
+    run();
+    setInterval(run, POLL_MS);
+  }
 }
+
+if (!globalThis.__TIS_PREVIEW__) boot();

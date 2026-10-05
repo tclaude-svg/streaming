@@ -8,9 +8,13 @@
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev.mjs",
     "test": "node --test test/*.test.mjs",
-    "mock": "node test/mock-supabase.mjs"
+    "mock": "node test/mock-supabase.mjs",
+    "demo": "node demo/build.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

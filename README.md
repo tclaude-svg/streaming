@@ -40,12 +40,23 @@ or `?demo=empty` to see the no-fixtures state.
 It works out of the box in a preview mode and connects to a database for real use. Setup and details:
 [docs/ADMIN.md](docs/ADMIN.md).
 
+## Clickable preview (one HTML file)
+
+```bash
+npm install          # once: installs esbuild, used only for this preview
+npm run demo         # writes dist/demo.html (or: node demo/build.mjs path/to/file.html)
+```
+
+Bundles the real pages, behaviour and admin into a single file with sample data and a stand-in video
+player. The admin and the public pages share one browser-side draft, so changes in the admin show on the site.
+
 ## Tests
 
 ```bash
 npm test                      # unit tests
 python3 test/e2e/preview.py   # browser tests (python playwright + chromium)
 python3 test/e2e/db.py
+python3 test/e2e/preview-bundle.py   # builds and walks through the single-file preview
 ```
 
 ## Not built yet (next steps)

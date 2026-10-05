@@ -1,0 +1,21 @@
+/* Preview-only pieces: the tour button and panel, and the stand-in video player. */
+.demo-player { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center; color: var(--muted); background: radial-gradient(80% 90% at 50% 0%, rgba(59, 123, 255, .28), rgba(59, 123, 255, 0) 70%), linear-gradient(180deg, #0b1220, #05080f); }
+.demo-player .dp-play { width: 76px; height: 76px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+.demo-player .dp-play svg { width: 34px; height: 34px; fill: #0f172a; margin-left: 4px; }
+.demo-player strong { color: var(--text); font-size: 16px; }
+.demo-player small { font-size: 12px; max-width: 34ch; }
+
+#demo-root { position: fixed; right: 12px; bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; max-width: calc(100vw - 24px); }
+@media (min-width: 860px) { #demo-root { bottom: 20px; right: 20px; } }
+.demo-fab { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--gold); color: #1a1405; font: 700 14px/1 var(--sans); cursor: pointer; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.demo-fab:hover { transform: scale(1.03); }
+.demo-panel { width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 620px); overflow: auto; padding: 18px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(0, 0, 0, .6); display: grid; gap: 14px; }
+.demo-panel h2 { font: 400 30px/1 var(--display); letter-spacing: -.01em; }
+.demo-panel h3 { font: 600 12px/1.2 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--blue-text); margin-bottom: 8px; }
+.demo-panel p, .demo-panel li { font-size: 14px; color: var(--muted); }
+.demo-panel ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.demo-panel li b { color: var(--text); font-weight: 600; }
+.demo-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-panel .btn { min-height: 44px; padding: 0 16px; font-size: 14px; }
+.demo-close { justify-self: end; margin-top: -6px; }
+.demo-msg { color: var(--gold); font-weight: 600; min-height: 18px; }

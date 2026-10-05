@@ -13,6 +13,16 @@ def start(cmd, env_extra, wait_url):
         except Exception: time.sleep(0.2)
     raise RuntimeError('did not start: ' + ' '.join(cmd))
 
+
+def wait_until(cond, timeout=6.0):
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            if cond(): return True
+        except Exception: pass
+        time.sleep(0.1)
+    return False
+
 results = []
 def check(name, cond, extra=''):
     results.append((name, bool(cond)))
@@ -96,7 +106,7 @@ try:
         page.locator('.adm-card', has_text='Mock Opp').locator('[data-act=golive]').click()
         live = page.locator('.adm-card.is-live')
         live.locator('[data-act=score][data-side=home][data-delta="1"]').click()
-        page.wait_for_timeout(700)
+        wait_until(lambda: next(r for r in mock('/__rows') if r['opponent'] == 'Mock Opp')['home_score'] == 1)
         row = next(r for r in mock('/__rows') if r['opponent'] == 'Mock Opp')
         check('live status and score saved', (row['status'], row['home_score'], row['away_score']) == ('live', 1, 0), row)
         pub.goto(BASE + '/')
@@ -115,7 +125,7 @@ try:
         page.reload()
         expect(page.locator('.adm-card').first).to_be_visible()
         page.locator('.adm-card.is-live [data-act=score][data-side=away][data-delta="1"]').click()
-        page.wait_for_timeout(900)
+        wait_until(lambda: next(r for r in mock('/__rows') if r['opponent'] == 'Mock Opp')['away_score'] == 1)
         log = mock('/__log')
         check('expired token is refreshed automatically', any('grant_type=refresh_token' in e['path'] for e in log))
         row = next(r for r in mock('/__rows') if r['opponent'] == 'Mock Opp')
