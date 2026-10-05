@@ -1,6 +1,6 @@
 import S from './strings.js';
 import {
-  TZ, upcoming, teamMap, heroInner, scoreboardInner, videoInner, videoKey, gameUrl, gameTitle, liveBadge, esc
+  TZ, upcoming, teamMap, heroInner, heroSig, scoreboardInner, videoInner, videoKey, gameUrl, gameTitle, liveBadge, esc
 } from './render.js';
 
 const POLL_MS = 30000;
@@ -28,7 +28,11 @@ async function loadData() {
 /* ---------- regions that refresh themselves ---------- */
 function refresh({ games, teams }) {
   const hero = document.querySelector('[data-region="hero"]');
-  if (hero) hero.innerHTML = heroInner(games, teams);
+  // Re-render only when something changed, so the entrance animation does not replay every poll.
+  if (hero && hero.dataset.sig !== heroSig(games)) {
+    hero.querySelector('[data-slot]').innerHTML = heroInner(games, teams);
+    hero.dataset.sig = heroSig(games);
+  }
 
   const strip = document.querySelector('[data-region="live-strip"]');
   if (strip) {

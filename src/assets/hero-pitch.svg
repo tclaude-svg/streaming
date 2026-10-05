@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050a15"/><stop offset=".6" stop-color="#0a1530"/><stop offset="1" stop-color="#0c1c3a"/></linearGradient>
+    <linearGradient id="turf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d2a47"/><stop offset="1" stop-color="#0a1c33"/></linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe0ff" stop-opacity=".30"/><stop offset="1" stop-color="#cfe0ff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="lamp"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".25" stop-color="#cfe0ff" stop-opacity=".55"/><stop offset="1" stop-color="#cfe0ff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050a15" stop-opacity="0"/><stop offset="1" stop-color="#050a15" stop-opacity=".5"/></linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <!-- stands silhouette -->
+  <path d="M0 470 L0 380 L240 330 L520 360 L800 320 L1080 360 L1360 330 L1600 380 L1600 470 Z" fill="#070d1c"/>
+  <!-- floodlight beams (one light system, two masts) -->
+  <g filter="url(#soft)"><polygon points="250,40 90,900 980,900" fill="url(#beam)"/><polygon points="1350,40 620,900 1510,900" fill="url(#beam)"/></g>
+  <!-- pitch in perspective with mowing stripes -->
+  <polygon points="470,520 1130,520 1760,900 -160,900" fill="url(#turf)"/>
+  <g fill="#ffffff" opacity=".035">
+    <polygon points="470,520 590,520 330,900 -160,900"/><polygon points="710,520 830,520 810,900 460,900"/>
+    <polygon points="950,520 1070,520 1290,900 1000,900"/><polygon points="1190,520 1130,520 1760,900 1480,900"/>
+  </g>
+  <!-- pitch lines -->
+  <g fill="none" stroke="#e8f0ff" stroke-opacity=".38" stroke-width="3">
+    <polygon points="470,520 1130,520 1760,900 -160,900"/>
+    <line x1="800" y1="520" x2="800" y2="900" stroke-opacity="0"/>
+    <line x1="296" y1="690" x2="1304" y2="690"/>
+    <ellipse cx="800" cy="690" rx="190" ry="42"/>
+    <polygon points="640,520 960,520 1010,560 590,560"/>
+  </g>
+  <!-- lamps -->
+  <g><circle cx="250" cy="40" r="90" fill="url(#lamp)"/><circle cx="1350" cy="40" r="90" fill="url(#lamp)"/></g>
+  <!-- darken the lower area so text stays readable -->
+  <rect y="380" width="1600" height="520" fill="url(#shade)"/>
+</svg>

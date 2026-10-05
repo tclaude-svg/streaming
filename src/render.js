@@ -43,6 +43,14 @@ const icon = {
 };
 export { icon };
 
+const courtPaths = {
+  football: '<rect x="8" y="8" width="144" height="74"/><path d="M80 8v74"/><circle cx="80" cy="45" r="12"/><rect x="8" y="25" width="22" height="40"/><rect x="130" y="25" width="22" height="40"/><rect x="8" y="35" width="8" height="20"/><rect x="144" y="35" width="8" height="20"/>',
+  basketball: '<rect x="8" y="8" width="144" height="74"/><path d="M80 8v74"/><circle cx="80" cy="45" r="10"/><rect x="8" y="30" width="28" height="30"/><rect x="124" y="30" width="28" height="30"/><path d="M36 30a15 15 0 0 1 0 30M124 30a15 15 0 0 0 0 30M8 14h14a33 33 0 0 1 0 62H8M152 14h-14a33 33 0 0 0 0 62h14"/>',
+  volleyball: '<rect x="28" y="14" width="104" height="62"/><path d="M80 8v74" stroke-width="2.2"/><path d="M60 14v62M100 14v62"/>'
+};
+export const court = (sport) =>
+  `<svg class="court" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.1">${courtPaths[sport] || ''}</g></svg>`;
+
 const localHint = (iso) => `<span class="local" data-local="${esc(iso)}"></span>`;
 
 export const whenHtml = (g) =>
@@ -59,7 +67,7 @@ export function gameCard(g, teams, kind = 'auto') {
     isLive ? `<span class="card-badge">${liveBadge()}</span>` : '',
     isFinal ? `<span class="card-score" aria-label="Final score ${g.homeScore} to ${g.awayScore}">${g.homeScore}<i>–</i>${g.awayScore}</span>` : '',
     replay ? `<span class="play-circle">${icon.play}</span>` : '',
-    g.replayId ? '' : owlEye('watermark')
+    g.replayId ? '' : court(t.sport)
   ].join('');
   const bg = g.replayId
     ? ` style="background-image:linear-gradient(180deg,rgba(10,15,26,0) 40%,rgba(10,15,26,.85)),url(https://i.ytimg.com/vi/${esc(g.replayId)}/hqdefault.jpg)"`
@@ -102,33 +110,35 @@ export function countdownHtml(iso) {
   <div><b data-u="m">--</b><span>${S.hero.minutes}</span></div></div>`;
 }
 
+export const heroSig = (games) => {
+  const live = games.find((g) => g.status === 'live');
+  const next = upcoming(games).find((g) => g.status === 'scheduled');
+  return live ? `live:${live.id}:${live.homeScore}:${live.awayScore}` : next ? `next:${next.id}` : 'none';
+};
+
+const heroTitle = (g) => `${esc(S.owls)} <em>${S.vs}</em> ${esc(g.opponent)}`;
+
 export function heroInner(games, teams) {
   const live = games.find((g) => g.status === 'live');
   const next = upcoming(games).find((g) => g.status === 'scheduled');
   if (live) {
     const t = teams[live.team];
-    return `<div class="hero-inner">
-  <p class="eyebrow-row">${liveBadge()}<span class="eyebrow">${esc(teamLabelLong(t))}</span></p>
-  <h1 class="hero-title">${esc(S.owls)} <em>${S.vs}</em> ${esc(live.opponent)}</h1>
-  <p class="hero-score" aria-label="Score ${live.homeScore ?? 0} to ${live.awayScore ?? 0}">${live.homeScore ?? 0}<i>–</i>${live.awayScore ?? 0}</p>
-  <div class="hero-actions"><a class="btn btn-primary" href="${gameUrl(live)}">${icon.play}${S.hero.watchLive}</a></div>
-</div>`;
+    return `<p class="eyebrow-row fx fx-0">${liveBadge()}<span class="hero-kicker">${esc(teamLabelLong(t))}</span></p>
+<h1 class="hero-title fx fx-0">${heroTitle(live)}</h1>
+<p class="hero-score fx fx-1" aria-label="Score ${live.homeScore ?? 0} to ${live.awayScore ?? 0}">${live.homeScore ?? 0}<i>–</i>${live.awayScore ?? 0}</p>
+<div class="hero-actions fx fx-2"><a class="btn-pill btn-pill-lg" href="${gameUrl(live)}">${icon.play}${S.hero.watchLive}</a></div>`;
   }
   if (next) {
     const t = teams[next.team];
-    return `<div class="hero-inner">
-  <p class="eyebrow-row"><span class="eyebrow">${S.hero.nextGame} · ${esc(teamLabelLong(t))}</span></p>
-  <h1 class="hero-title">${esc(S.owls)} <em>${S.vs}</em> ${esc(next.opponent)}</h1>
-  <p class="hero-when">${whenHtml(next)} · ${esc(next.venue)}</p>
-  ${countdownHtml(next.start)}
-  <div class="hero-actions"><a class="btn btn-primary" href="${gameUrl(next)}">${S.hero.gameDetails}</a></div>
-</div>`;
+    return `<p class="hero-kicker fx fx-0">${S.hero.nextGame} · ${esc(teamLabelLong(t))}</p>
+<h1 class="hero-title fx fx-0">${heroTitle(next)}</h1>
+<p class="hero-sub fx fx-1">${whenHtml(next)} · ${esc(next.venue)}</p>
+<div class="fx fx-1">${countdownHtml(next.start)}</div>
+<div class="hero-actions fx fx-2"><a class="btn-pill btn-pill-lg" href="${gameUrl(next)}">${S.hero.gameDetails}</a></div>`;
   }
-  return `<div class="hero-inner">
-  <h1 class="hero-title">${S.hero.emptyTitle}</h1>
-  <p class="hero-when">${S.hero.emptyText}</p>
-  <div class="hero-actions"><a class="btn btn-primary" href="/replays/">${S.hero.browseReplays}</a></div>
-</div>`;
+  return `<h1 class="hero-title fx fx-0">${S.hero.emptyTitle}</h1>
+<p class="hero-sub fx fx-1">${S.hero.emptyText}</p>
+<div class="hero-actions fx fx-2"><a class="btn-pill btn-pill-lg" href="/replays/">${S.hero.browseReplays}</a></div>`;
 }
 
 /* ---------- game page pieces ---------- */
@@ -172,7 +182,7 @@ const navItems = [
   { key: 'about', href: '/about/', icon: icon.info }
 ];
 
-export function layout({ title, description, path, body, active, siteUrl, ogTitle }) {
+export function layout({ title, description, path, body, active, siteUrl, ogTitle, bodyClass = '', tone = 'dark' }) {
   const full = title === S.siteName ? title : `${title} · ${S.siteName}`;
   const url = siteUrl + path;
   const desc = description || S.metaDescription;
@@ -194,20 +204,21 @@ export function layout({ title, description, path, body, active, siteUrl, ogTitl
 <meta property="og:image" content="${esc(siteUrl)}/assets/og-default.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<!-- TODO before launch: self-host these two fonts (Barlow Condensed 700, Inter 400/600) instead of using Google Fonts -->
+<!-- TODO before launch: self-host these two fonts (Instrument Serif 400, Inter 400/500/600/700) instead of using Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/css/styles.css">
 <script type="module" src="/js/app.js"></script>
 </head>
-<body>
+<body class="${esc(bodyClass)}" data-tone="${esc(tone)}">
 <a class="skip" href="#main">${S.skip}</a>
 <header class="topbar">
-  <a class="brand" href="/" aria-label="${esc(S.siteName)} home">${owlEye('brand-eye')}<span class="brand-text">TIS <b>Owls</b> Live</span></a>
+  <a class="brand" href="/" aria-label="${esc(S.siteName)} home">${owlEye('brand-eye')}<span class="brand-text">TIS <em>Owls</em> Live</span></a>
   <nav class="topnav" aria-label="Main">
     ${navItems.map((n) => `<a href="${n.href}"${active === n.key ? ' aria-current="page"' : ''}>${S.nav[n.key]}</a>`).join('')}
   </nav>
+  <a class="btn-pill topcta" href="/schedule/">${S.cta}</a>
 </header>
 <main id="main">
 ${body}
@@ -231,11 +242,17 @@ const section = (title, inner, more) =>
 const emptyMsg = (text) => `<p class="empty">${text}</p>`;
 const filterEmpty = `<p class="empty" data-empty hidden>${S.filters.none}</p>`;
 
-export function homeBody(games, teams) {
+export function homeBody(games, teams, opts = {}) {
   const featured = games.find((g) => g.status === 'live') || upcoming(games).find((g) => g.status === 'scheduled');
   const ups = upcoming(games).filter((g) => g !== featured).slice(0, 6);
   const reps = finished(games).slice(0, 6);
-  return `<section class="hero" data-region="hero">${heroInner(games, teams)}</section>
+  const video = opts.heroVideo
+    ? `<video class="hero-video" autoplay muted loop playsinline poster="/assets/hero-pitch.svg"><source src="${esc(opts.heroVideo)}" type="video/mp4"></video>`
+    : '';
+  return `<section class="hero" data-region="hero" data-sig="${esc(heroSig(games))}">
+  <div class="hero-media" aria-hidden="true">${video}</div>
+  <div class="hero-content" data-slot>${heroInner(games, teams)}</div>
+</section>
 <div class="wrap" data-filterable>
   ${filterBar({ level: false })}
   ${section(S.home.thisWeek, `<div class="rail" data-list>${ups.map((g) => gameCard(g, teams)).join('') || emptyMsg(S.schedule.empty)}</div>`, `<a class="more" href="/schedule/">${S.home.allSchedule}</a>`)}

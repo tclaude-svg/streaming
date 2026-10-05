@@ -24,7 +24,7 @@ const write = async (rel, content) => {
 const page = (path, opts) => write(join(path, 'index.html'), R.layout({ siteUrl: cfg.siteUrl, path, ...opts }));
 
 // --- pages
-await page('/', { title: S.siteName, body: R.homeBody(games, teams) });
+await page('/', { title: S.siteName, body: R.homeBody(games, teams, { heroVideo: cfg.heroVideo }), bodyClass: 'home', tone: cfg.heroTone || 'dark' });
 await page('/schedule/', { title: S.schedule.title, body: R.scheduleBody(games, teams), active: 'schedule' });
 await page('/replays/', { title: S.replays.title, body: R.replaysBody(games, teams), active: 'replays' });
 await page('/teams/', { title: S.teams.title, body: R.teamsBody(games, teams), active: 'teams' });

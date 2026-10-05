@@ -1,5 +1,7 @@
 {
   "siteUrl": "https://live.tashschool.org",
   "name": "TIS Owls Live",
-  "timezone": "Asia/Tashkent"
+  "timezone": "Asia/Tashkent",
+  "heroVideo": null,
+  "heroTone": "dark"
 }
