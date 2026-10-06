@@ -1,9 +1,9 @@
-# Team setup: 3 people, one Cloudflare Pages site, everyone edits through Claude
+# Team setup: 3 people, one shared Claude account, one shared GitHub account, one Cloudflare Pages site
 
-## 1. GitHub (once, by the repo owner)
-1. Repo `tclaude-svg/streaming` > Settings > Collaborators > add the other two people (Write access).
-2. Settings > Branches > add a rule for `main`: require a pull request, 1 approval.
-3. Fill in the usernames in `.github/CODEOWNERS`.
+## 1. GitHub (once)
+1. Repo `tclaude-svg/streaming` > Settings > Branches > add a rule for `main`: require a pull request,
+   **0 approvals** (one shared account cannot approve its own pull requests, so requiring 1 would block every merge).
+   This still stops anyone pushing straight to the live site.
 
 ## 2. Cloudflare Pages (once, by the repo owner)
 1. Cloudflare dashboard > Workers & Pages > Create > Pages > **Connect to Git** > pick `tclaude-svg/streaming`.
@@ -14,22 +14,25 @@
    - Environment variables (only once the database exists): `SUPABASE_URL`, `SUPABASE_ANON_KEY`
 3. Save and deploy. Production branch = `main` -> `https://<project>.pages.dev`.
    Every other branch gets its own preview URL like `https://frontend-hero.<project>.pages.dev`.
-4. Account > Members: invite the other two (optional, only needed to see deploy logs).
 5. Later: Custom domains > add `live.tashschool.org`.
 
 Nobody uploads files to Cloudflare by hand. Pushing to GitHub is the deploy.
 
-## 3. Each teammate (once)
-1. Accept the GitHub invite.
-2. Open claude.ai/code, connect GitHub, choose the `tclaude-svg/streaming` repo.
+## 3. Each teammate
+1. Log in to the shared Claude account at claude.ai/code and choose the `tclaude-svg/streaming` repo.
+2. **Start your own new session** and rename it right away: `<your name> – <branch>`, e.g. `Aziz – frontend/schedule`.
+   Never type into a session someone else started; everyone sees all sessions on the shared account.
 3. Claude reads `CLAUDE.md` automatically, so it already knows the branch and ownership rules.
 
 ## 4. Day-to-day
-1. Start a Claude session and say what you want, e.g.
-   "Frontend: make the schedule cards bigger on mobile, branch frontend/schedule-cards, open a PR."
-2. Claude makes a branch, edits, runs build + tests, pushes, opens a pull request.
-3. Open the Cloudflare preview link on the PR and check it on your phone.
-4. A teammate approves, then merge. `main` redeploys to the live site in about a minute.
+1. In your session, say who you are and what you want, e.g.
+   "I'm Aziz. Frontend: make the schedule cards bigger on mobile, branch frontend/schedule-cards, open a PR."
+2. Claude makes the branch, edits, runs build + tests, pushes, opens a pull request.
+3. Post the PR link in your group chat. **Someone else** opens the Cloudflare preview, checks it on a phone,
+   and clicks Merge. `main` redeploys to the live site in about a minute.
+
+Shared usage limits: three busy sessions use the account's limit faster. Close sessions you're done with
+and keep requests focused.
 
 ## Avoiding conflicts
 - Frontend and backend touch different files (see `CLAUDE.md`), so you rarely collide.
