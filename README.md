@@ -1,5 +1,8 @@
 # TIS Owls Live
 
+Live site: https://tisowlstreaming.pages.dev (Cloudflare Pages, deploys from `main`; every branch gets a preview URL).
+Team workflow: [docs/TEAM-SETUP.md](docs/TEAM-SETUP.md).
+
 Mobile-first website where families and students watch Tashkent International School
 sports live or as replays. MVP scope is in the project plan (Oct 2, 2026): one YouTube
 stream per game, a schedule, a replay library and simple team pages.
@@ -67,7 +70,7 @@ python3 test/e2e/preview-bundle.py   # builds and walks through the single-file 
 4. Privacy-friendly analytics script, Lighthouse and accessibility audit on real hosting.
 5. Per-game share images and scheduled rebuilds so link previews of new games are accurate.
 6. Fill the About page text (placeholders in square brackets) once the school decides.
-7. Choose hosting and add a deploy workflow.
+7. Point `live.tashschool.org` at the Cloudflare Pages project and switch `siteUrl` in `site.config.json` back to it.
 
 ## Repository
 
