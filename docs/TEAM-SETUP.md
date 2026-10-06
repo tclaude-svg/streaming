@@ -41,9 +41,9 @@ and keep requests focused.
 
 ## 21st.dev UI components (MCP)
 `.mcp.json` connects every Claude session in this repo to the 21st.dev MCP, which lets Claude search
-21st.dev's UI component library and generate components. Needs, once, in the cloud environment settings
-(environment menu in the session title bar > Edit):
-- Environment variable `API_KEY_21ST` = your key from https://21st.dev/mcp (never commit the key)
-- Network access: allow `21st.dev`
+21st.dev's UI component library and generate components. The key is never in the repo or the session:
+it is an API credential on the cloud environment (environment menu in the session title bar > Edit >
+Add credential): type Bearer, allowed website `21st.dev`, header `Authorization` / `Bearer` / key from
+https://21st.dev/settings/api-keys. The environment adds the header to every request to 21st.dev.
 New sessions pick it up. 21st.dev components are React + Tailwind; this site is plain JS and CSS, so ask
 Claude to adapt a component to `src/render.js` and `src/styles.css` rather than adding React.
