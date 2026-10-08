@@ -8,7 +8,7 @@ import S from './strings.js';
 import * as R from './render.js';
 import {
   loadConfig, loadTeams, staticGames, hasBackend, fromRow, toRow,
-  parseYouTubeId, toTashkentInput, fromTashkentInput, makeId
+  parseYouTubeId, toTashkentInput, fromTashkentInput, makeId, isSafeCover
 } from './data.js';
 
 const T = S.admin;
@@ -233,7 +233,7 @@ function formView() {
   </div>
   ${field(F.stream, input('stream', 'text', v.stream, `inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=…"${e.stream ? ' aria-invalid="true" aria-describedby="stream-err"' : ' aria-describedby="stream-help"'}`), { id: 'stream', help: F.streamHelp, error: e.stream })}
   ${field(F.replay, input('replay', 'text', v.replay, `inputmode="url" autocomplete="off" placeholder="https://youtu.be/…"${e.replay ? ' aria-invalid="true" aria-describedby="replay-err"' : ' aria-describedby="replay-help"'}`), { id: 'replay', help: F.replayHelp, error: e.replay })}
-  ${field(F.cover, input('cover', 'text', v.cover, 'inputmode="url" autocomplete="off"'), { id: 'cover' })}
+  ${field(F.cover, input('cover', 'text', v.cover, `inputmode="url" autocomplete="off" maxlength="500"${e.cover ? ' aria-invalid="true" aria-describedby="cover-err"' : ''}`), { id: 'cover', error: e.cover })}
   <div class="adm-actions adm-form-actions">
     <button class="btn btn-primary" type="submit">${F.save}</button>
     <button class="btn btn-ghost" type="button" data-act="cancel">${F.cancel}</button>
@@ -302,7 +302,8 @@ function readForm(form) {
   const replayId = parseYouTubeId(values.replay);
   if (streamId === null) errors.stream = T.errors.youtube;
   if (replayId === null) errors.replay = T.errors.youtube;
-  const score = (s) => (s === '' ? null : /^\d+$/.test(s) ? Number(s) : NaN);
+  if (values.cover && !isSafeCover(values.cover)) errors.cover = T.errors.cover;
+  const score = (s) => (s === '' ? null : /^\d{1,3}$/.test(s) ? Number(s) : NaN);
   const homeScore = score(values.homeScore);
   const awayScore = score(values.awayScore);
   if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) errors.score = T.errors.score;

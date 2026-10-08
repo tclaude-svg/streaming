@@ -78,8 +78,10 @@ try:
         # --- public site picks the game up with no rebuild
         pub = ctx.new_page()
         pub.on('pageerror', lambda e: errors.append(str(e)))
+        # Read the signature from the page as built, before the browser can re-render it.
+        import re as _re
+        built = _re.search(r'<main[^>]*data-sig="([^"]*)"', urllib.request.urlopen(BASE + '/schedule/').read().decode()).group(1)
         pub.goto(BASE + '/schedule/')
-        built = pub.locator('main').get_attribute('data-sig')
         expect(pub.locator('.card', has_text='Mock Opp')).to_have_count(1)
         check('schedule shows the new game without a rebuild', True)
         check('list signature updated after re-render', pub.locator('main').get_attribute('data-sig') != built)

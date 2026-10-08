@@ -64,7 +64,8 @@ python3 test/e2e/preview-bundle.py   # builds and walks through the single-file 
 
 ## Not built yet (next steps)
 
-1. Create the real Supabase project and check the policies with a staff account (docs/ADMIN.md).
+1. Supabase project `tis-owls-live` exists (Frankfurt, free plan) and is set in `site.config.json`. Public sign-up is closed
+   (only emails in `public.staff` can get an account). Still to do: add staff emails, then their accounts (docs/ADMIN.md).
 2. Real TIS logo, brand hex codes (placeholders in `:root` of `src/styles.css`) and approved photos.
 3. Self-hosted fonts (currently Google Fonts, marked TODO in `src/render.js`).
 4. Privacy-friendly analytics script, Lighthouse and accessibility audit on real hosting.
