@@ -20,16 +20,33 @@ export const staticGames = () => fetch('/data/games.json', { cache: 'no-store' }
 
 /* ---------- Supabase rows <-> game objects ---------- */
 
+// A cover image address is placed inside CSS url(...) on the page, so only plain https
+// addresses are accepted: no spaces, quotes, parentheses, semicolons or backslashes.
+// The same rule is enforced by the database (games_cover_check in supabase/schema.sql).
+// http://localhost is accepted only so local tests can use the mock storage; the database itself
+// allows https only, so it can never reach the live site.
+export const isSafeCover = (s) =>
+  typeof s === 'string' && s.length <= 500 && /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/)[A-Za-z0-9._~:/?#@!$&*+,=%-]+$/.test(s);
+
 export const fromRow = (r) => ({
   id: r.id, team: r.team, opponent: r.opponent, venue: r.venue, start: r.start, status: r.status,
-  homeScore: r.home_score, awayScore: r.away_score, streamId: r.stream_id, replayId: r.replay_id, cover: r.cover
+  homeScore: r.home_score, awayScore: r.away_score, streamId: r.stream_id, replayId: r.replay_id,
+  cover: isSafeCover(r.cover) ? r.cover : null, hidden: Boolean(r.hidden)
 });
 
 export const toRow = (g) => ({
   id: g.id, team: g.team, opponent: g.opponent, venue: g.venue, start: g.start, status: g.status,
   home_score: g.homeScore ?? null, away_score: g.awayScore ?? null,
-  stream_id: g.streamId || null, replay_id: g.replayId || null, cover: g.cover || null
+  stream_id: g.streamId || null, replay_id: g.replayId || null, cover: g.cover || null, hidden: Boolean(g.hidden)
 });
+
+// Mirrors the database rule: a finished game with no replay link uses its live stream's video,
+// because a YouTube live stream becomes its own replay.
+export function withReplayFallback(g) {
+  return g.status === 'final' && !g.replayId && g.streamId ? { ...g, replayId: g.streamId } : g;
+}
+
+export const isVisible = (g) => !g.hidden;
 
 export const hasBackend = (cfg) => Boolean(cfg?.supabase?.url && cfg?.supabase?.anonKey);
 
@@ -49,7 +66,7 @@ export async function loadGames(cfg = {}) {
   if (hasBackend(cfg)) {
     try { return await fetchSupabaseGames(cfg.supabase); } catch { /* fall back to the static file */ }
   }
-  return staticGames();
+  return (await staticGames()).filter(isVisible);
 }
 
 /* ---------- YouTube links ---------- */
