@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright, expect
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PORT = 3111
 env = {**os.environ, 'PORT': str(PORT)}
-env.pop('SUPABASE_URL', None); env.pop('SUPABASE_ANON_KEY', None)
+env.pop('SUPABASE_ANON_KEY', None); env['SUPABASE_URL'] = 'off'  # preview mode even though site.config.json names the database
 srv = subprocess.Popen(['node', 'scripts/dev.mjs'], cwd=REPO, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 for _ in range(50):
     try: urllib.request.urlopen(f'http://localhost:{PORT}/'); break

@@ -17,7 +17,9 @@ let { games } = JSON.parse(await readFile(join(root, 'data/games.json'), 'utf8')
 
 // Database settings (public by design: the anon key can only do what row level security allows).
 // Environment variables win over site.config.json so hosting can set them without a commit.
-const supabase = {
+// SUPABASE_URL=off builds without the database (preview mode with data/games.json), e.g. for tests.
+const dbOff = process.env.SUPABASE_URL === 'off';
+const supabase = dbOff ? { url: null, anonKey: null } : {
   url: process.env.SUPABASE_URL || cfg.supabase?.url || null,
   anonKey: process.env.SUPABASE_ANON_KEY || cfg.supabase?.anonKey || null
 };
