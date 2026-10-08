@@ -182,7 +182,7 @@ const navItems = [
   { key: 'about', href: '/about/', icon: icon.info }
 ];
 
-export function layout({ title, description, path, body, active, siteUrl, ogTitle, bodyClass = '', tone = 'dark', noindex = false, script = '/js/app.js', page = '', arg = '', sig = '' }) {
+export function layout({ title, description, path, body, active, siteUrl, ogTitle, ogImage = '', bodyClass = '', tone = 'dark', noindex = false, script = '/js/app.js', page = '', arg = '', sig = '' }) {
   const full = title === S.siteName ? title : `${title} · ${S.siteName}`;
   const url = siteUrl + path;
   const desc = description || S.metaDescription;
@@ -201,7 +201,7 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ''}<link rel=
 <meta property="og:title" content="${esc(ogTitle || full)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(url)}">
-<meta property="og:image" content="${esc(siteUrl)}/assets/og-default.png">
+<meta property="og:image" content="${esc(ogImage || `${siteUrl}/assets/og-default.png`)}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <!-- TODO before launch: self-host these two fonts (Instrument Serif 400, Inter 400/500/600/700) instead of using Google Fonts -->

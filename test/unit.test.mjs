@@ -47,8 +47,9 @@ test('makeId is readable, stable and unique', () => {
 });
 
 test('database rows and game objects convert both ways', () => {
-  const game = { id: 'a', team: 'football-jv', opponent: 'X', venue: 'Home field', start: '2026-10-17T16:00:00+05:00', status: 'live', homeScore: 0, awayScore: 2, streamId: 'dQw4w9WgXcQ', replayId: null, cover: null };
+  const game = { id: 'a', team: 'football-jv', opponent: 'X', venue: 'Home field', start: '2026-10-17T16:00:00+05:00', status: 'live', homeScore: 0, awayScore: 2, streamId: 'dQw4w9WgXcQ', replayId: null, cover: null, hidden: false };
   assert.deepEqual(fromRow(toRow(game)), game);
+  assert.equal(fromRow(toRow({ ...game, hidden: true })).hidden, true);
   assert.equal(toRow({ ...game, homeScore: undefined }).home_score, null);
   assert.equal(toRow({ ...game, streamId: '' }).stream_id, null);
 });

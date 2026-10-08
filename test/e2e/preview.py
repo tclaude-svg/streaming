@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright, expect
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PORT = 3111
 env = {**os.environ, 'PORT': str(PORT)}
-env.pop('SUPABASE_URL', None); env.pop('SUPABASE_ANON_KEY', None)
+env.pop('SUPABASE_ANON_KEY', None); env['SUPABASE_URL'] = 'off'  # preview mode even though site.config.json names the database
 srv = subprocess.Popen(['node', 'scripts/dev.mjs'], cwd=REPO, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 for _ in range(50):
     try: urllib.request.urlopen(f'http://localhost:{PORT}/'); break
@@ -45,6 +45,7 @@ try:
 
         # --- validation
         page.click('[data-act=new]')
+        check('no photo upload without the database', page.locator('#cover-file').count() == 0)
         page.click('button[type=submit]')
         check('empty opponent rejected', page.locator('#opponent-err').is_visible())
         check('empty start rejected', page.locator('#start-err').is_visible())
@@ -90,7 +91,7 @@ try:
         live.locator('[data-act=end]').click()
         fin = page.locator('.adm-card', has_text='Test Opponent')
         check('ended game shows final score', '2–1' in fin.inner_text().replace('\n', ''), fin.inner_text())
-        check('final game without replay is flagged', 'No replay link yet' in fin.inner_text())
+        check('ending a streamed game uses the stream as the replay', 'No replay link yet' not in fin.inner_text() and 'replay' in page.locator('#adm-msg').inner_text().lower())
         fin.locator('[data-act=edit]').click()
         check('edit form is prefilled with a clean stream link', page.input_value('#stream') == 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
         page.fill('#replay', 'https://youtu.be/aaaaaaaaaaa')

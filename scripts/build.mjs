@@ -6,17 +6,21 @@ import { fileURLToPath } from 'node:url';
 import S from '../src/strings.js';
 import * as R from '../src/render.js';
 import { buildIcs } from '../src/ics.js';
-import { fetchSupabaseGames } from '../src/data.js';
+import { fetchSupabaseGames, shareImage } from '../src/data.js';
+import { gamesSignature } from './signature.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 const cfg = JSON.parse(await readFile(join(root, 'site.config.json'), 'utf8'));
 const teamsList = JSON.parse(await readFile(join(root, 'data/teams.json'), 'utf8'));
 let { games } = JSON.parse(await readFile(join(root, 'data/games.json'), 'utf8'));
+games = games.filter((g) => !g.hidden); // the database already leaves hidden games out for visitors
 
 // Database settings (public by design: the anon key can only do what row level security allows).
 // Environment variables win over site.config.json so hosting can set them without a commit.
-const supabase = {
+// SUPABASE_URL=off builds without the database (preview mode with data/games.json), e.g. for tests.
+const dbOff = process.env.SUPABASE_URL === 'off';
+const supabase = dbOff ? { url: null, anonKey: null } : {
   url: process.env.SUPABASE_URL || cfg.supabase?.url || null,
   anonKey: process.env.SUPABASE_ANON_KEY || cfg.supabase?.anonKey || null
 };
@@ -56,6 +60,7 @@ for (const g of games) {
     title: R.gameTitle(g),
     description: `${R.teamLabelLong(t)} · ${R.dayLabel(g.start)} ${R.timeLabel(g.start)} · ${g.venue}`,
     ogTitle: `${R.gameTitle(g)} · ${R.teamLabel(t)}`,
+    ogImage: shareImage(g),
     body: R.gameBody(g, games, teams),
     active: 'schedule'
   });
@@ -86,10 +91,12 @@ await write('404.html', R.layout({
 
 // --- static files
 await cp(join(root, 'src/styles.css'), join(dist, 'css/styles.css'));
-for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admin.js', 'fallback.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
+for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admin.js', 'import.js', 'fallback.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
 await cp(join(root, 'src/assets'), join(dist, 'assets'), { recursive: true });
 await cp(join(root, 'data'), join(dist, 'data'), { recursive: true });
 await write('config.json', JSON.stringify({ name: cfg.name, siteUrl: cfg.siteUrl, heroVideo: cfg.heroVideo, supabase: supabase.url && supabase.anonKey ? supabase : null }, null, 2));
+// Fingerprint of the rendered games, read by scripts/check-rebuild.mjs.
+await write('build-sig.json', JSON.stringify({ games: gamesSignature(games), builtAt: new Date().toISOString() }));
 await write('robots.txt', `User-agent: *\nAllow: /\n`);
 
 console.log(`Built ${games.length} games, ${teamsList.length} teams -> dist/`);
