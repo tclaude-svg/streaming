@@ -5,7 +5,7 @@
   "heroVideo": null,
   "heroTone": "dark",
   "supabase": {
-    "url": null,
-    "anonKey": null
+    "url": "https://ounaamzialcfsdkgtpkn.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91bmFhbXppYWxjZnNka2d0cGtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzM2NzAsImV4cCI6MjEwNzA0OTY3MH0.Fek56f0pF94c1eQNn_LyhnN_YanH1DiQn4T21bjuXPg"
   }
 }
