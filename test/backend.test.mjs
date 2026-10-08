@@ -54,3 +54,11 @@ test('isVisible hides taken-down games', () => {
   assert.equal(isVisible({ hidden: false }), true);
   assert.equal(isVisible({ hidden: true }), false);
 });
+
+test('isSafeCover allows the local test server but no other plain http address', () => {
+  assert.equal(isSafeCover('http://localhost:4010/storage/v1/object/public/covers/a.jpg'), true);
+  assert.equal(isSafeCover('http://127.0.0.1:4010/x.jpg'), true);
+  assert.equal(isSafeCover('http://localhost.evil.example/x.jpg'), false);
+  assert.equal(isSafeCover('http://example.org/x.jpg'), false);
+  assert.equal(isSafeCover('https://ounaamzialcfsdkgtpkn.supabase.co/storage/v1/object/public/covers/2026-10-08-ab12.jpg'), true);
+});

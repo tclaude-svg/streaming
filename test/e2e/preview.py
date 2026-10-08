@@ -45,6 +45,7 @@ try:
 
         # --- validation
         page.click('[data-act=new]')
+        check('no photo upload without the database', page.locator('#cover-file').count() == 0)
         page.click('button[type=submit]')
         check('empty opponent rejected', page.locator('#opponent-err').is_visible())
         check('empty start rejected', page.locator('#start-err').is_visible())

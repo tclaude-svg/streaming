@@ -19,6 +19,8 @@ const staff = new Map([['staff@test.org', 'admin'], ['scorer@test.org', 'scorer'
 const accounts = new Set(['staff@test.org', 'scorer@test.org', 'outsider@test.org']);
 const signups = [];
 const history = []; // mirrors public.game_history
+const covers = new Map(); // name -> { type, bytes } (the "covers" storage folder)
+const readRaw = (req) => new Promise((resolve) => { const parts = []; req.on('data', (c) => parts.push(c)); req.on('end', () => resolve(Buffer.concat(parts))); });
 let hid = 0;
 const SCORE_KEYS = new Set(['home_score', 'away_score', 'updated_at']);
 const same = (a, b, skip = new Set(['updated_at'])) => {
@@ -71,6 +73,15 @@ createServer(async (req, res) => {
   if (url.pathname === '/__staff') return send(res, 200, Object.fromEntries(staff));
   if (url.pathname === '/__signups') return send(res, 200, signups);
   if (url.pathname === '/__history') return send(res, 200, history);
+  if (url.pathname === '/__covers') return send(res, 200, [...covers].map(([name, f]) => ({ name, type: f.type, size: f.bytes.length })));
+
+  const pub = /^\/storage\/v1\/object\/public\/covers\/([\w.-]+)$/.exec(url.pathname);
+  if (pub && req.method === 'GET') {
+    const f = covers.get(pub[1]);
+    if (!f) return send(res, 404, { message: 'Object not found' });
+    res.writeHead(200, { 'content-type': f.type, 'access-control-allow-origin': '*' });
+    return res.end(f.bytes);
+  }
 
   if (url.pathname === '/auth/v1/token') {
     const b = await readBody(req);
@@ -99,6 +110,18 @@ createServer(async (req, res) => {
 
   const me = tokens.get(auth) || null;
   const role = me ? staff.get(me) || null : null;
+
+  const up = /^\/storage\/v1\/object\/covers\/([\w.-]+)$/.exec(url.pathname);
+  if (up && req.method === 'POST') {
+    const bytes = await readRaw(req);
+    if (role !== 'admin') return send(res, 400, { statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy' });
+    const type = req.headers['content-type'] || '';
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(type)) return send(res, 400, { statusCode: '415', error: 'invalid_mime_type', message: `mime type ${type} is not supported` });
+    if (bytes.length > 5242880) return send(res, 400, { statusCode: '413', error: 'Payload too large', message: 'The object exceeded the maximum allowed size' });
+    if (covers.has(up[1])) return send(res, 400, { statusCode: '409', error: 'Duplicate', message: 'The resource already exists' });
+    covers.set(up[1], { type, bytes });
+    return send(res, 200, { Key: `covers/${up[1]}` });
+  }
 
   if (url.pathname === '/rest/v1/rpc/staff_role') {
     if (!me) return send(res, 401, { code: 'PGRST301', message: 'JWT expired or invalid' });

@@ -33,6 +33,15 @@ marked "Hidden from the public site". Links that were already shared stop workin
 (about 10 minutes with automatic rebuilds). Also make the video private on YouTube, since the site only
 embeds it. **Show on site** brings it back.
 
+## Cover photos
+
+In a game's **Edit** form, admins can **upload a photo** instead of pasting an image address. Only use photos the
+school has consent to publish. The page makes the photo smaller (1600 px on the long side), turns it upright and
+saves it as a JPEG, which also removes the original file's camera and GPS location data, then uploads it to the
+public `covers` storage folder in Supabase. Save the game to use it. Anyone can view the photos; only admins can
+upload or remove them. Replaced photos stay in storage (the free plan has 1 GB); delete old ones in Supabase >
+Storage > covers if it ever fills up.
+
 ## Importing the fixture list
 
 Admins tap **Import fixtures**, then paste rows copied from Excel or Google Sheets (or choose a CSV file).

@@ -23,8 +23,10 @@ export const staticGames = () => fetch('/data/games.json', { cache: 'no-store' }
 // A cover image address is placed inside CSS url(...) on the page, so only plain https
 // addresses are accepted: no spaces, quotes, parentheses, semicolons or backslashes.
 // The same rule is enforced by the database (games_cover_check in supabase/schema.sql).
+// http://localhost is accepted only so local tests can use the mock storage; the database itself
+// allows https only, so it can never reach the live site.
 export const isSafeCover = (s) =>
-  typeof s === 'string' && s.length <= 500 && /^https:\/\/[A-Za-z0-9._~:/?#@!$&*+,=%-]+$/.test(s);
+  typeof s === 'string' && s.length <= 500 && /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/)[A-Za-z0-9._~:/?#@!$&*+,=%-]+$/.test(s);
 
 export const fromRow = (r) => ({
   id: r.id, team: r.team, opponent: r.opponent, venue: r.venue, start: r.start, status: r.status,

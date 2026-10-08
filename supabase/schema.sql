@@ -232,6 +232,22 @@ create policy "Admins can read history" on public.game_history
 revoke all on public.game_history from anon, authenticated;
 grant select on public.game_history to authenticated;
 
+-- Cover photos: a public storage folder anyone can view; only admins upload, replace or delete.
+-- JPEG, PNG or WebP up to 5 MB (the admin page shrinks photos before uploading).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('covers', 'covers', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'];
+
+drop policy if exists "Admins upload cover photos" on storage.objects;
+drop policy if exists "Admins replace cover photos" on storage.objects;
+drop policy if exists "Admins remove cover photos" on storage.objects;
+create policy "Admins upload cover photos" on storage.objects
+  for insert to authenticated with check (bucket_id = 'covers' and public.is_admin());
+create policy "Admins replace cover photos" on storage.objects
+  for update to authenticated using (bucket_id = 'covers' and public.is_admin()) with check (bucket_id = 'covers' and public.is_admin());
+create policy "Admins remove cover photos" on storage.objects
+  for delete to authenticated using (bucket_id = 'covers' and public.is_admin());
+
 -- Visitors only ever read. Row level security already blocks writes for the anon role;
 -- removing the table grants as well means a policy mistake later cannot open writes to everyone.
 revoke insert, update, delete, truncate on public.games from anon;

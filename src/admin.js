@@ -124,6 +124,21 @@ function databaseBackend(sb) {
       ? rest('games', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(toRow(g)) })
       : rest(`games?id=eq.${encodeURIComponent(g.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(toRow(g)) }),
     remove: (id) => rest(`games?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }),
+    // Uploads a JPEG to the public "covers" folder and returns its public address.
+    async uploadCover(blob) {
+      const name = `${new Date().toISOString().slice(0, 10)}-${(crypto.randomUUID?.() || String(Math.random()).slice(2)).replace(/-/g, '').slice(0, 16)}.jpg`;
+      const r = await fetch(`${base}/storage/v1/object/covers/${name}`, {
+        method: 'POST',
+        headers: { apikey: sb.anonKey, Authorization: `Bearer ${await token()}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'false' },
+        body: blob
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        if (r.status === 401 && !j.message) { keep(null); throw new Error('signed-out'); }
+        throw new Error(j.message || j.error || `status ${r.status}`);
+      }
+      return `${base}/storage/v1/object/public/covers/${name}`;
+    },
     listStaff: () => rest('staff?select=email,role&order=email.asc'),
     listHistory: () => rest('game_history?select=*&order=changed_at.desc,id.desc&limit=60'),
     addStaff: (email, role) => rest('staff', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ email, role }) }),
@@ -278,6 +293,8 @@ function formView() {
   ${field(F.stream, input('stream', 'text', v.stream, `inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=…"${e.stream ? ' aria-invalid="true" aria-describedby="stream-err"' : ' aria-describedby="stream-help"'}`), { id: 'stream', help: F.streamHelp, error: e.stream })}
   ${field(F.replay, input('replay', 'text', v.replay, `inputmode="url" autocomplete="off" placeholder="https://youtu.be/…"${e.replay ? ' aria-invalid="true" aria-describedby="replay-err"' : ' aria-describedby="replay-help"'}`), { id: 'replay', help: F.replayHelp, error: e.replay })}
   ${field(F.cover, input('cover', 'text', v.cover, `inputmode="url" autocomplete="off" maxlength="500"${e.cover ? ' aria-invalid="true" aria-describedby="cover-err"' : ''}`), { id: 'cover', error: e.cover })}
+  ${backend.uploadCover ? `${field(F.coverUpload, `<input class="adm-input" id="cover-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*" aria-describedby="cover-file-help">`, { id: 'cover-file', help: F.coverHelp })}
+  <p class="adm-msg" id="cover-status" role="status" aria-live="polite"></p>` : ''}
   <div class="adm-actions adm-form-actions">
     <button class="btn btn-primary" type="submit">${F.save}</button>
     <button class="btn btn-ghost" type="button" data-act="cancel">${F.cancel}</button>
@@ -429,6 +446,53 @@ async function undo(hid) {
     message = H.undone;
   } catch (e) { handleError(e); return; }
   render();
+}
+
+/* ---------- cover photo upload ---------- */
+
+const COVER_MAX = 1600; // longest side in pixels; plenty for a card background
+
+// Redraws the photo on a canvas: smaller, upright, JPEG, and without the original file's metadata
+// (camera details and GPS location are not copied).
+async function shrinkPhoto(file) {
+  let img;
+  try { img = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch {
+    img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('not-image'));
+      el.src = URL.createObjectURL(file);
+    });
+  }
+  const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+  const scale = Math.min(1, COVER_MAX / Math.max(w, h));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w * scale);
+  canvas.height = Math.round(h * scale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  if (!blob) throw new Error('not-image');
+  return blob;
+}
+
+async function onCoverFile(input) {
+  const F = T.form;
+  const status = root.querySelector('#cover-status');
+  const say = (t, bad) => { if (status) { status.textContent = t; status.className = bad ? 'adm-error' : 'adm-msg'; } };
+  const file = input.files?.[0];
+  if (!file) return;
+  if (file.type && !file.type.startsWith('image/')) { say(F.coverNotImage, true); return; }
+  say(F.coverUploading);
+  try {
+    const url = await backend.uploadCover(await shrinkPhoto(file));
+    const box = root.querySelector('#cover');
+    if (box) box.value = url;
+    say(F.coverUploaded);
+  } catch (e) {
+    if (e.message === 'signed-out') { handleError(e); return; }
+    say(e.message === 'not-image' ? F.coverNotImage : `${F.coverFailed} ${e.message}`, true);
+  } finally { input.value = ''; }
 }
 
 /* ---------- fixture import ---------- */
@@ -739,6 +803,7 @@ export function mountAdmin(el) {
   root.addEventListener('submit', onSubmit);
   // A chosen CSV file fills the paste box and is checked straight away.
   root.addEventListener('change', (e) => {
+    if (e.target.id === 'cover-file') { onCoverFile(e.target); return; }
     if (e.target.id !== 'import-file' || !e.target.files?.[0]) return;
     const reader = new FileReader();
     reader.onload = () => checkImport(String(reader.result || ''));

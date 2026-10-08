@@ -63,6 +63,7 @@ python3 test/e2e/db.py
 python3 test/e2e/roles.py      # staff roles, takedowns, auto replays, staff page
 python3 test/e2e/history.py    # change history and undo
 python3 test/e2e/import.py     # fixture import from a spreadsheet or CSV
+python3 test/e2e/cover.py      # cover photo upload (needs Pillow)
 python3 test/e2e/preview-bundle.py   # builds and walks through the single-file preview
 ```
 
