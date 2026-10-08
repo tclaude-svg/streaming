@@ -33,6 +33,14 @@ marked "Hidden from the public site". Links that were already shared stop workin
 (about 10 minutes with automatic rebuilds). Also make the video private on YouTube, since the site only
 embeds it. **Show on site** brings it back.
 
+## Change history and undo
+
+Admins open **History** to see the latest 60 changes to games: what changed, when, and who did it
+(for example "Score 0–0 → 3–1, by scorer@…"). A run of score taps by one person within 5 minutes is one entry.
+**Undo** puts the game back the way it was before that change; if the game changed again afterwards, the page
+warns first, because undo also removes those later changes. Undo works for added and deleted games too.
+The database records history itself, so nobody can edit or delete it from the site.
+
 ## Adding staff
 
 1. An admin opens **Staff**, enters the person's email and picks Admin or Scorer.

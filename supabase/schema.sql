@@ -175,6 +175,63 @@ create policy "Admins can change other staff" on public.staff
 create policy "Admins can remove other staff" on public.staff
   for delete to authenticated using (public.is_admin() and email <> lower(auth.jwt() ->> 'email'));
 
+-- Change history: every change to a game, who made it and the values before and after, so an admin
+-- can see what happened and undo it. Written only by the trigger; admins read it.
+-- A run of score-only changes by the same person within 5 minutes is kept as one entry.
+create table if not exists public.game_history (
+  id         bigint generated always as identity primary key,
+  game_id    text not null,
+  kind       text not null check (kind in ('insert', 'update', 'score', 'delete')),
+  changed_by text,
+  changed_at timestamptz not null default now(),
+  old_row    jsonb,
+  new_row    jsonb
+);
+create index if not exists game_history_changed_at_idx on public.game_history (changed_at desc);
+create index if not exists game_history_game_idx on public.game_history (game_id, changed_at desc);
+alter table public.game_history enable row level security;
+
+create or replace function public.log_game_change() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  who text := lower(auth.jwt() ->> 'email');
+  o jsonb := case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end;
+  n jsonb := case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end;
+  k text;
+  last public.game_history;
+begin
+  if tg_op = 'UPDATE' then
+    if (o - 'updated_at') = (n - 'updated_at') then return null; end if;
+    k := case when (o - '{home_score,away_score,updated_at}'::text[]) = (n - '{home_score,away_score,updated_at}'::text[])
+              then 'score' else 'update' end;
+    if k = 'score' then
+      select * into last from public.game_history where game_id = new.id order by changed_at desc, id desc limit 1;
+      if found and last.kind = 'score' and last.changed_by is not distinct from who
+         and last.changed_at > now() - interval '5 minutes' then
+        update public.game_history set new_row = n, changed_at = now() where id = last.id;
+        return null;
+      end if;
+    end if;
+  else
+    k := lower(tg_op);
+  end if;
+  insert into public.game_history (game_id, kind, changed_by, old_row, new_row)
+  values (coalesce(new.id, old.id), k, who, o, n);
+  return null;
+end;
+$$;
+revoke all on function public.log_game_change() from public, anon, authenticated;
+
+drop trigger if exists games_history on public.games;
+create trigger games_history after insert or update or delete on public.games
+for each row execute function public.log_game_change();
+
+drop policy if exists "Admins can read history" on public.game_history;
+create policy "Admins can read history" on public.game_history
+  for select to authenticated using (public.is_admin());
+revoke all on public.game_history from anon, authenticated;
+grant select on public.game_history to authenticated;
+
 -- Visitors only ever read. Row level security already blocks writes for the anon role;
 -- removing the table grants as well means a policy mistake later cannot open writes to everyone.
 revoke insert, update, delete, truncate on public.games from anon;

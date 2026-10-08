@@ -60,6 +60,7 @@ npm test                      # unit tests
 python3 test/e2e/preview.py   # browser tests (python playwright + chromium)
 python3 test/e2e/db.py
 python3 test/e2e/roles.py      # staff roles, takedowns, auto replays, staff page
+python3 test/e2e/history.py    # change history and undo
 python3 test/e2e/preview-bundle.py   # builds and walks through the single-file preview
 ```
 

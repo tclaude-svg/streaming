@@ -124,6 +124,7 @@ function databaseBackend(sb) {
       : rest(`games?id=eq.${encodeURIComponent(g.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(toRow(g)) }),
     remove: (id) => rest(`games?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }),
     listStaff: () => rest('staff?select=email,role&order=email.asc'),
+    listHistory: () => rest('game_history?select=*&order=changed_at.desc,id.desc&limit=60'),
     addStaff: (email, role) => rest('staff', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ email, role }) }),
     setRole: (email, role) => rest(`staff?email=eq.${encodeURIComponent(email)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ role }) }),
     removeStaff: (email) => rest(`staff?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } })
@@ -145,6 +146,7 @@ let setupMessage = '';
 let role = null; // 'admin' | 'scorer' | null (signed in but not on the staff list)
 let staffList = [];
 let staffError = '';
+let history = [];
 const timers = {};
 const isAdmin = () => role === 'admin';
 const myEmail = () => (backend.email?.() || '').toLowerCase();
@@ -174,7 +176,7 @@ function topBar() {
   const roleLabel = backend.mode === 'database' && role ? ` · ${role === 'admin' ? T.roleAdmin : T.roleScorer}` : '';
   const tools = backend.mode === 'preview'
     ? `<button class="btn btn-ghost" type="button" data-act="download">${T.download}</button><button class="btn btn-ghost" type="button" data-act="reset">${T.reset}</button>`
-    : `${isAdmin() ? `<button class="btn btn-ghost" type="button" data-act="staff">${T.staff.open}</button>` : ''}<button class="btn btn-ghost" type="button" data-act="signout">${T.signOut}</button>`;
+    : `${isAdmin() ? `<button class="btn btn-ghost" type="button" data-act="history">${T.history.open}</button><button class="btn btn-ghost" type="button" data-act="staff">${T.staff.open}</button>` : ''}<button class="btn btn-ghost" type="button" data-act="signout">${T.signOut}</button>`;
   return `<div class="adm-top">
   <div><h1 class="page-title">${T.title}</h1><p class="adm-modeline">${mode}${roleLabel}</p></div>
   <div class="adm-tools">${isAdmin() ? `<button class="btn btn-primary" type="button" data-act="new">${T.add}</button>` : ''}${tools}</div>
@@ -342,10 +344,94 @@ function staffView() {
 </form>`;
 }
 
+/* ---------- change history ---------- */
+
+const HISTORY_FIELDS = ['status', 'team', 'opponent', 'venue', 'start', 'home_score', 'away_score', 'stream_id', 'replay_id', 'cover', 'hidden'];
+
+function fieldValue(key, row) {
+  const H = T.history;
+  const v = row?.[key];
+  if (key === 'hidden') return v ? H.hiddenYes : H.hiddenNo;
+  if (v === null || v === undefined || v === '') return H.none;
+  if (key === 'status') return S.status[v] || v;
+  if (key === 'start') return `${R.dayLabel(v)} ${R.timeLabel(v)}`;
+  if (key === 'team') return teams[v] ? R.teamLabelLong(teams[v]) : v;
+  return String(v);
+}
+
+// One line describing what a history entry changed, in plain words.
+export function describeChange(h) {
+  const H = T.history;
+  if (h.kind === 'insert') return H.added;
+  if (h.kind === 'delete') return H.deleted;
+  const o = h.old_row || {};
+  const n = h.new_row || {};
+  if (h.kind === 'score') return `${H.score} ${o.home_score ?? 0}–${o.away_score ?? 0} → ${n.home_score ?? 0}–${n.away_score ?? 0}`;
+  const changed = HISTORY_FIELDS.filter((k) => JSON.stringify(o[k] ?? null) !== JSON.stringify(n[k] ?? null)
+    && !(k === 'start' && new Date(o[k]).getTime() === new Date(n[k]).getTime()));
+  return changed.map((k) => `${H.fields[k]}: ${fieldValue(k, o)} → ${fieldValue(k, n)}`).join(' · ') || T.saved;
+}
+
+// True when the game today is not what this entry left it as (a later change exists).
+function changedSince(h) {
+  const cur = games.find((g) => g.id === h.game_id);
+  if (h.kind === 'delete') return Boolean(cur);
+  if (!cur) return true;
+  const now = toRow(cur);
+  return HISTORY_FIELDS.some((k) => JSON.stringify(now[k] ?? null) !== JSON.stringify(h.new_row?.[k] ?? null)
+    && !(k === 'start' && new Date(now[k]).getTime() === new Date(h.new_row?.[k]).getTime()));
+}
+
+function historyView() {
+  const H = T.history;
+  const items = history.map((h) => {
+    const row = h.new_row || h.old_row || {};
+    const when = `${R.dayLabel(h.changed_at)} · ${R.timeLabel(h.changed_at)}`;
+    return `<article class="adm-card">
+    <div class="adm-card-head"><div>
+      <p class="eyebrow">${esc(row.opponent ? titleOf(fromRow(row)) : h.game_id)}</p>
+      <p class="adm-title">${esc(describeChange(h))}</p>
+      <p class="meta">${esc(when)} · ${H.by} ${esc(h.changed_by || H.unknown)}</p>
+    </div></div>
+    <div class="adm-actions"><button class="btn btn-ghost" type="button" data-act="undo" data-hid="${esc(String(h.id))}">${H.undo}</button></div>
+  </article>`;
+  }).join('');
+  return `<div class="adm-top"><div><p class="crumb"><a href="#" data-act="cancel">← ${T.staff.back}</a></p><h1 class="page-title">${H.title}</h1></div></div>
+<p class="adm-note">${H.intro}</p>
+<p id="adm-msg" class="adm-msg" role="status" aria-live="polite">${esc(message)}</p>
+<section class="section"><div class="adm-list">${items || `<p class="empty">${H.empty}</p>`}</div></section>`;
+}
+
+async function openHistory() {
+  view = { name: 'history', id: null };
+  message = T.loading;
+  render();
+  try { history = await backend.listHistory(); message = ''; } catch (e) { handleError(e, T.loadFailed); }
+  render();
+}
+
+async function undo(hid) {
+  const H = T.history;
+  const h = history.find((x) => String(x.id) === hid);
+  if (!h) return;
+  const ask = h.kind === 'insert' ? H.undoAdd : h.kind === 'delete' ? H.undoDelete : changedSince(h) ? H.undoLater : H.undoConfirm;
+  if (!confirm(ask)) return;
+  setMessage(T.saving);
+  try {
+    if (h.kind === 'insert') await backend.remove(h.game_id);
+    else await backend.save(fromRow(h.old_row), h.kind === 'delete');
+    games = await backend.load();
+    history = await backend.listHistory();
+    message = H.undone;
+  } catch (e) { handleError(e); return; }
+  render();
+}
+
 function render() {
   if (backend.mode === 'database' && !backend.signedIn()) root.innerHTML = signInView();
   else if (backend.mode === 'database' && !role) root.innerHTML = notStaffView();
   else if (view.name === 'staff' && isAdmin()) root.innerHTML = staffView();
+  else if (view.name === 'history' && isAdmin()) root.innerHTML = historyView();
   else root.innerHTML = view.name === 'form' && isAdmin() ? formView() : listView();
   const first = root.querySelector('[aria-invalid="true"]') || (view.name === 'form' ? root.querySelector('#opponent') : null);
   if (first && formError) first.focus();
@@ -468,6 +554,8 @@ async function onClick(e) {
   else if (act === 'hide') await setHidden(id, true);
   else if (act === 'show') await setHidden(id, false);
   else if (act === 'staff') await openStaff();
+  else if (act === 'history') await openHistory();
+  else if (act === 'undo') await undo(el.dataset.hid);
   else if (act === 'staff-role') await staffAction(() => backend.setRole(el.dataset.email, el.dataset.role), T.staff.changed);
   else if (act === 'staff-remove') {
     if (!confirm(T.staff.removeConfirm)) return;
@@ -564,6 +652,7 @@ export function mountAdmin(el) {
   role = null;
   staffList = [];
   staffError = '';
+  history = [];
   root.addEventListener('click', onClick);
   root.addEventListener('submit', onSubmit);
   return boot();

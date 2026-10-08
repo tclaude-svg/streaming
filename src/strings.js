@@ -111,6 +111,31 @@ export default {
       exists: 'That email is already on the list.',
       back: 'Back to games'
     },
+    history: {
+      open: 'History',
+      title: 'Change history',
+      intro: 'The latest 60 changes to games, newest first. Undo puts a game back the way it was before that change.',
+      empty: 'No changes yet.',
+      by: 'by',
+      unknown: 'someone',
+      added: 'Added the game',
+      deleted: 'Deleted the game',
+      score: 'Score',
+      undo: 'Undo',
+      undone: 'Undone.',
+      undoConfirm: 'Put this game back the way it was before this change?',
+      undoLater: 'This game has changed again since then. Undo puts it back to before this change and also removes those later changes. Continue?',
+      undoAdd: 'Delete this game again (undo adding it)?',
+      undoDelete: 'Bring this deleted game back?',
+      fields: {
+        status: 'Status', opponent: 'Opponent', venue: 'Venue', start: 'Start time', team: 'Sport and level',
+        stream_id: 'Stream link', replay_id: 'Replay link', cover: 'Cover image', hidden: 'Visibility',
+        home_score: 'Owls score', away_score: 'Opponent score'
+      },
+      none: 'none',
+      hiddenYes: 'hidden',
+      hiddenNo: 'shown'
+    },
     firstTime: 'First time here? Set up your account',
     setupTitle: 'Set up your staff account',
     setupIntro: 'Use the email an admin added to the staff list and choose a password of at least 8 characters.',

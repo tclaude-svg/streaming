@@ -18,6 +18,28 @@ const rows = new Map(seed.map((g) => [g.id, toRow(g)]));
 const staff = new Map([['staff@test.org', 'admin'], ['scorer@test.org', 'scorer']]);
 const accounts = new Set(['staff@test.org', 'scorer@test.org', 'outsider@test.org']);
 const signups = [];
+const history = []; // mirrors public.game_history
+let hid = 0;
+const SCORE_KEYS = new Set(['home_score', 'away_score', 'updated_at']);
+const same = (a, b, skip = new Set(['updated_at'])) => {
+  const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+  return [...keys].every((k) => skip.has(k) || JSON.stringify(a?.[k] ?? null) === JSON.stringify(b?.[k] ?? null));
+};
+function logChange(who, oldRow, newRow) {
+  let kind = !oldRow ? 'insert' : !newRow ? 'delete' : null;
+  if (!kind) {
+    if (same(oldRow, newRow)) return;
+    kind = same(oldRow, newRow, SCORE_KEYS) ? 'score' : 'update';
+  }
+  const id = (newRow || oldRow).id;
+  const last = [...history].reverse().find((h) => h.game_id === id);
+  if (kind === 'score' && last && last.kind === 'score' && last.changed_by === who && Date.now() - Date.parse(last.changed_at) < 300000) {
+    last.new_row = { ...newRow };
+    last.changed_at = new Date().toISOString();
+    return;
+  }
+  history.push({ id: (hid += 1), game_id: id, kind, changed_by: who, changed_at: new Date().toISOString(), old_row: oldRow ? { ...oldRow } : null, new_row: newRow ? { ...newRow } : null });
+}
 const tokens = new Map(); // token -> email
 const log = [];
 let n = 0;
@@ -48,6 +70,7 @@ createServer(async (req, res) => {
   if (url.pathname === '/__rows') return send(res, 200, [...rows.values()]);
   if (url.pathname === '/__staff') return send(res, 200, Object.fromEntries(staff));
   if (url.pathname === '/__signups') return send(res, 200, signups);
+  if (url.pathname === '/__history') return send(res, 200, history);
 
   if (url.pathname === '/auth/v1/token') {
     const b = await readBody(req);
@@ -94,6 +117,7 @@ createServer(async (req, res) => {
       if (!row.id || !row.opponent) return send(res, 400, { message: 'invalid row' });
       if (rows.has(row.id)) return send(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint "games_pkey"' });
       rows.set(row.id, fillReplay({ hidden: false, ...row }));
+      logChange(me, null, rows.get(row.id));
       return send(res, 201);
     }
     if (req.method === 'PATCH') {
@@ -110,12 +134,21 @@ createServer(async (req, res) => {
         }
       }
       rows.set(id, fillReplay({ ...old, ...patch, id }));
+      logChange(me, old, rows.get(id));
       return send(res, 204);
     }
     if (req.method === 'DELETE') {
-      if (role === 'admin') rows.delete(eqParam(url, 'id'));
+      const id = eqParam(url, 'id');
+      if (role === 'admin' && rows.has(id)) { logChange(me, rows.get(id), null); rows.delete(id); }
       return send(res, 204);
     }
+  }
+
+  if (url.pathname === '/rest/v1/game_history') {
+    if (!me) return send(res, 401, { message: 'JWT required' });
+    if (req.method !== 'GET') return rls(res);
+    if (role !== 'admin') return send(res, 200, []);
+    return send(res, 200, [...history].sort((a, b) => b.changed_at.localeCompare(a.changed_at) || b.id - a.id).slice(0, 60));
   }
 
   if (url.pathname === '/rest/v1/staff') {
