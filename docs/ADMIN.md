@@ -26,10 +26,11 @@ Uses [Supabase](https://supabase.com) (free tier is enough): email sign-in plus 
 1. Create a Supabase project. Region: pick the closest to Tashkent.
 2. SQL editor: run `supabase/schema.sql`. It is safe to run again later (for example after a pull that changed it):
    existing games and staff are kept and the rules are replaced with the new version.
-3. Authentication > Providers > Email: **turn off "Allow new users to sign up"**.
-   Authentication > Users: add each staff member (invite or "Add user").
-4. SQL editor: `insert into public.staff (email) values ('athletics@...');` for each staff member.
-   Only listed emails can change games, even if an account exists.
+3. SQL editor: `insert into public.staff (email) values ('athletics@...');` for each staff member.
+   Only listed emails can get an account or change games: the schema refuses any other sign-up,
+   even if "Allow new users to sign up" is left on (turning it off as well does no harm).
+4. Authentication > Users: add each staff member ("Add user", with a password they choose). Do this after step 3,
+   or the account is refused.
 5. Project settings > API: copy the **Project URL** and the **anon public key**. Never use the `service_role` key.
 6. Put them in `site.config.json` under `supabase` (`url`, `anonKey`), or set the environment variables
    `SUPABASE_URL` and `SUPABASE_ANON_KEY` where the site is built. The anon key is meant to be public;

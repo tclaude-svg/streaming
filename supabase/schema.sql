@@ -99,5 +99,21 @@ create policy "Staff can delete games" on public.games
 revoke insert, update, delete, truncate on public.games from anon;
 revoke all on public.staff from anon, authenticated;
 
+-- Only staff-listed emails can get an account at all, so public sign-up is closed even if the
+-- "Allow new users to sign up" switch is left on. Add the email to public.staff first, then create the user.
+create or replace function public.only_staff_accounts() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.email is null or not exists (select 1 from public.staff where lower(email) = lower(new.email)) then
+    raise exception 'Sign-up is closed: % is not on the staff list', coalesce(new.email, '(no email)');
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists only_staff_accounts on auth.users;
+create trigger only_staff_accounts before insert on auth.users
+for each row execute function public.only_staff_accounts();
+
 -- Add each staff member (replace with real addresses):
 -- insert into public.staff (email) values ('athletics@example.org') on conflict do nothing;
