@@ -112,6 +112,7 @@ function databaseBackend(sb) {
       const j = await r.json().catch(() => ({}));
       if (r.ok) return;
       const text = j.msg || j.error_description || j.message || `status ${r.status}`;
+      if (r.status === 429 || /rate limit/i.test(text)) throw new Error('rate-limited');
       throw new Error(/staff list|saving new user/i.test(text) ? 'not-listed' : text);
     },
     // 'admin', 'scorer', or null for an account that is not on the staff list.
@@ -513,7 +514,11 @@ async function onSubmit(e) {
       await backend.signUp(email, password);
       authView = 'signin';
       setupMessage = T.setupDone;
-    } catch (err) { signInError = err.message === 'not-listed' ? T.setupNotListed : `${T.setupFailed} ${err.message}`; }
+    } catch (err) {
+      signInError = err.message === 'not-listed' ? T.setupNotListed
+        : err.message === 'rate-limited' ? T.setupRateLimited
+        : `${T.setupFailed} ${err.message}`;
+    }
     render();
   } else if (e.target.matches('[data-staff-add]')) {
     const f = new FormData(e.target);

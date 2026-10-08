@@ -118,6 +118,7 @@ export default {
     setupDone: 'Check your email and click the confirmation link, then come back and sign in.',
     setupFailed: 'Could not create the account:',
     setupNotListed: 'This email is not on the staff list yet. Ask an admin to add it first.',
+    setupRateLimited: 'Too many sign-up emails were sent in the last hour. Try again in an hour, or ask an admin to create the account in Supabase (Authentication > Users > Add user, with "Auto Confirm User" ticked).',
     setupShort: 'Choose a password of at least 8 characters.',
     backToSignIn: 'Back to sign-in',
     liveHint: 'The game is live. Update the score with the buttons.',
