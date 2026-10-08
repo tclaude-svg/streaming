@@ -90,7 +90,7 @@ await write('404.html', R.layout({
 
 // --- static files
 await cp(join(root, 'src/styles.css'), join(dist, 'css/styles.css'));
-for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admin.js', 'fallback.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
+for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admin.js', 'import.js', 'fallback.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
 await cp(join(root, 'src/assets'), join(dist, 'assets'), { recursive: true });
 await cp(join(root, 'data'), join(dist, 'data'), { recursive: true });
 await write('config.json', JSON.stringify({ name: cfg.name, siteUrl: cfg.siteUrl, heroVideo: cfg.heroVideo, supabase: supabase.url && supabase.anonKey ? supabase : null }, null, 2));

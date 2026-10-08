@@ -11,6 +11,7 @@ import {
   loadConfig, loadTeams, staticGames, hasBackend, fromRow, toRow,
   parseYouTubeId, toTashkentInput, fromTashkentInput, makeId, isSafeCover, withReplayFallback
 } from './data.js';
+import { parseFixtures } from './import.js';
 
 const T = S.admin;
 const { esc } = R;
@@ -147,6 +148,9 @@ let role = null; // 'admin' | 'scorer' | null (signed in but not on the staff li
 let staffList = [];
 let staffError = '';
 let history = [];
+let importText = '';
+let importRows = null; // parsed rows, or null before "Check rows"
+let importFailures = {}; // line -> error message from the database
 const timers = {};
 const isAdmin = () => role === 'admin';
 const myEmail = () => (backend.email?.() || '').toLowerCase();
@@ -179,7 +183,7 @@ function topBar() {
     : `${isAdmin() ? `<button class="btn btn-ghost" type="button" data-act="history">${T.history.open}</button><button class="btn btn-ghost" type="button" data-act="staff">${T.staff.open}</button>` : ''}<button class="btn btn-ghost" type="button" data-act="signout">${T.signOut}</button>`;
   return `<div class="adm-top">
   <div><h1 class="page-title">${T.title}</h1><p class="adm-modeline">${mode}${roleLabel}</p></div>
-  <div class="adm-tools">${isAdmin() ? `<button class="btn btn-primary" type="button" data-act="new">${T.add}</button>` : ''}${tools}</div>
+  <div class="adm-tools">${isAdmin() ? `<button class="btn btn-primary" type="button" data-act="new">${T.add}</button><button class="btn btn-ghost" type="button" data-act="import">${T.import.open}</button>` : ''}${tools}</div>
 </div>
 ${backend.mode === 'preview' ? `<p class="adm-note">${T.previewNote}</p>` : ''}
 ${role === 'scorer' ? `<p class="adm-note">${T.scorerNote}</p>` : ''}
@@ -427,11 +431,83 @@ async function undo(hid) {
   render();
 }
 
+/* ---------- fixture import ---------- */
+
+function importView() {
+  const I = T.import;
+  let preview = '';
+  if (importRows) {
+    if (!importRows.length) preview = `<p class="adm-error" role="alert">${I.nothing}</p>`;
+    else {
+      const ready = importRows.filter((r) => r.game && !r.duplicate && !r.added);
+      const cards = importRows.map((r) => {
+        const g = r.game;
+        const status = r.added ? T.saved
+          : importFailures[r.line] ? `${I.failed} ${importFailures[r.line]}`
+          : r.errors.length ? `${I.problems} ${r.errors.map((k) => I.errors[k]).join(', ')}`
+          : r.duplicate ? I.duplicate : I.ok;
+        const bad = r.errors.length || importFailures[r.line];
+        const title = g ? `${titleOf(g)}` : r.cells.filter(Boolean).join(' · ');
+        const meta = g ? `${R.teamLabelLong(teams[g.team])} · ${whenOf(g)} · ${g.venue}` : '';
+        return `<article class="adm-card" data-line="${r.line}">
+    <div class="adm-card-head"><div>
+      <p class="eyebrow">${I.line} ${r.line}</p>
+      <p class="adm-title">${esc(title)}</p>
+      ${meta ? `<p class="meta">${esc(meta)}</p>` : ''}
+      <p class="${bad ? 'adm-error' : r.duplicate ? 'adm-warn' : 'meta'}">${esc(status)}</p>
+    </div></div>
+  </article>`;
+      }).join('');
+      preview = `<p class="adm-msg" id="import-summary">${I.ready(ready.length)}</p>
+${ready.length ? `<div class="adm-actions"><button class="btn btn-primary" type="button" data-act="import-add">${I.addAll(ready.length)}</button></div>` : ''}
+<section class="section"><div class="adm-list">${cards}</div></section>`;
+    }
+  }
+  return `<div class="adm-top"><div><p class="crumb"><a href="#" data-act="cancel">← ${T.staff.back}</a></p><h1 class="page-title">${I.title}</h1></div></div>
+<p class="adm-note">${I.intro}</p>
+<p id="adm-msg" class="adm-msg" role="status" aria-live="polite">${esc(message)}</p>
+<form class="adm-form" novalidate data-import>
+  ${field(I.paste, `<textarea class="adm-input" id="import-text" name="text" rows="8" spellcheck="false" placeholder="${esc(I.example)}">${esc(importText)}</textarea>`, { id: 'import-text' })}
+  ${field(I.file, `<input class="adm-input" id="import-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain">`, { id: 'import-file' })}
+  <div class="adm-actions"><button class="btn btn-primary" type="submit">${I.check}</button></div>
+</form>
+${preview}`;
+}
+
+function checkImport(text) {
+  importText = text;
+  importFailures = {};
+  importRows = parseFixtures(text, { teamSlugs: teamsList.map((t) => t.slug), existing: games }).rows;
+  message = '';
+  render();
+}
+
+async function addImported() {
+  const I = T.import;
+  const todo = importRows.filter((r) => r.game && !r.duplicate && !r.added);
+  let ok = 0;
+  for (const [i, r] of todo.entries()) {
+    setMessage(I.adding(i + 1, todo.length));
+    try {
+      await backend.save(r.game, true);
+      games.push(r.game);
+      r.added = true;
+      ok += 1;
+    } catch (e) {
+      if (e.message === 'signed-out') { handleError(e); return; }
+      importFailures[r.line] = e.message;
+    }
+  }
+  message = I.done(ok, todo.length - ok);
+  render();
+}
+
 function render() {
   if (backend.mode === 'database' && !backend.signedIn()) root.innerHTML = signInView();
   else if (backend.mode === 'database' && !role) root.innerHTML = notStaffView();
   else if (view.name === 'staff' && isAdmin()) root.innerHTML = staffView();
   else if (view.name === 'history' && isAdmin()) root.innerHTML = historyView();
+  else if (view.name === 'import' && isAdmin()) root.innerHTML = importView();
   else root.innerHTML = view.name === 'form' && isAdmin() ? formView() : listView();
   const first = root.querySelector('[aria-invalid="true"]') || (view.name === 'form' ? root.querySelector('#opponent') : null);
   if (first && formError) first.focus();
@@ -555,6 +631,8 @@ async function onClick(e) {
   else if (act === 'show') await setHidden(id, false);
   else if (act === 'staff') await openStaff();
   else if (act === 'history') await openHistory();
+  else if (act === 'import') { view = { name: 'import', id: null }; importRows = null; importText = ''; importFailures = {}; message = ''; render(); }
+  else if (act === 'import-add') await addImported();
   else if (act === 'undo') await undo(el.dataset.hid);
   else if (act === 'staff-role') await staffAction(() => backend.setRole(el.dataset.email, el.dataset.role), T.staff.changed);
   else if (act === 'staff-remove') {
@@ -578,6 +656,7 @@ async function onClick(e) {
 async function onSubmit(e) {
   e.preventDefault();
   if (e.target.matches('[data-form]')) await submitForm(e.target);
+  else if (e.target.matches('[data-import]')) checkImport(String(new FormData(e.target).get('text') || ''));
   else if (e.target.matches('[data-signin]')) {
     const f = new FormData(e.target);
     try {
@@ -653,8 +732,18 @@ export function mountAdmin(el) {
   staffList = [];
   staffError = '';
   history = [];
+  importText = '';
+  importRows = null;
+  importFailures = {};
   root.addEventListener('click', onClick);
   root.addEventListener('submit', onSubmit);
+  // A chosen CSV file fills the paste box and is checked straight away.
+  root.addEventListener('change', (e) => {
+    if (e.target.id !== 'import-file' || !e.target.files?.[0]) return;
+    const reader = new FileReader();
+    reader.onload = () => checkImport(String(reader.result || ''));
+    reader.readAsText(e.target.files[0]);
+  });
   return boot();
 }
 

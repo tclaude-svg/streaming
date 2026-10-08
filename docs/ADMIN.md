@@ -33,6 +33,18 @@ marked "Hidden from the public site". Links that were already shared stop workin
 (about 10 minutes with automatic rebuilds). Also make the video private on YouTube, since the site only
 embeds it. **Show on site** brings it back.
 
+## Importing the fixture list
+
+Admins tap **Import fixtures**, then paste rows copied from Excel or Google Sheets (or choose a CSV file).
+Columns: date, time, sport, level, opponent, and optionally venue and stream link, with or without a header row
+(any column order when there is a header). A single "team" column such as "Football Varsity" also works.
+
+- Dates are day first: `17/10/2026`, `17.10.2026`, `2026-10-17` or `17 Oct 2026`. Times: `15:30`, `3:30 pm`, `1530`.
+  All times are Tashkent time.
+- Sports: football (or soccer), basketball, volleyball. Levels: Varsity (V), Junior Varsity (JV).
+- **Check rows** shows every row: ready, already added (same team, time and opponent; skipped), or what to fix.
+  **Add N games** adds the ready ones. Re-importing the same sheet adds nothing new.
+
 ## Change history and undo
 
 Admins open **History** to see the latest 60 changes to games: what changed, when, and who did it

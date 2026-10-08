@@ -27,7 +27,7 @@ Stay inside your area. If a change needs the other area, say so in the pull requ
 - Design rules: `docs/DESIGN.md`
 
 **Backend** (data, admin, build, hosting)
-- `src/data.js`, `src/admin.js`, `src/fallback.js`, `src/ics.js`
+- `src/data.js`, `src/admin.js`, `src/import.js`, `src/fallback.js`, `src/ics.js`
 - `supabase/schema.sql`, `scripts/`, `site.config.json`, `data/*.json`
 - Admin and database setup: `docs/ADMIN.md`
 

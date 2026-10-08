@@ -29,6 +29,7 @@ or `?demo=empty` to see the no-fixtures state.
   live regions (hero, score banner, video) every 30 seconds.
 - `src/strings.js` holds all interface text (Russian and Korean come later as extra files).
 - `src/data.js` loads games (database when configured, otherwise `data/games.json`); `src/admin.js` is the admin area.
+- `src/import.js` reads pasted spreadsheet rows or a CSV file into games for the admin's Import page.
 - `scripts/build.mjs` generates pages, one `.ics` calendar file per game, the admin page and `404.html`, and copies assets.
 - Hero video: set `heroVideo` and `heroTone` in `site.config.json`; see `docs/DESIGN.md`.
 - Comments and live chat are not part of the site; YouTube embeds use the privacy-enhanced domain.
@@ -61,6 +62,7 @@ python3 test/e2e/preview.py   # browser tests (python playwright + chromium)
 python3 test/e2e/db.py
 python3 test/e2e/roles.py      # staff roles, takedowns, auto replays, staff page
 python3 test/e2e/history.py    # change history and undo
+python3 test/e2e/import.py     # fixture import from a spreadsheet or CSV
 python3 test/e2e/preview-bundle.py   # builds and walks through the single-file preview
 ```
 

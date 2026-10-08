@@ -136,6 +136,32 @@ export default {
       hiddenYes: 'hidden',
       hiddenNo: 'shown'
     },
+    import: {
+      open: 'Import fixtures',
+      title: 'Import fixtures',
+      intro: 'Copy the rows from your spreadsheet (Excel, Google Sheets) and paste them here, or choose a CSV file. Columns: date, time, sport, level, opponent, and optionally venue and stream link. A header row is fine, in any order. Dates are day first (17/10/2026); times are Tashkent time.',
+      paste: 'Paste rows here',
+      file: 'Or choose a CSV file',
+      check: 'Check rows',
+      example: 'Example: 17/10/2026 → 15:30 → Football → Varsity → Westbridge Academy',
+      ready: (n) => `${n} ${n === 1 ? 'game is' : 'games are'} ready to add.`,
+      addAll: (n) => `Add ${n} ${n === 1 ? 'game' : 'games'}`,
+      ok: 'Ready',
+      duplicate: 'Already added, will be skipped',
+      problems: 'Fix in the spreadsheet:',
+      line: 'Row',
+      errors: {
+        date: 'date not recognised',
+        time: 'time not recognised',
+        team: 'sport and level not recognised',
+        opponent: 'opponent missing',
+        stream: 'stream link is not a YouTube link'
+      },
+      nothing: 'No rows found. Paste rows copied from the spreadsheet.',
+      adding: (i, n) => `Adding ${i} of ${n}…`,
+      done: (ok, failed) => `Added ${ok} ${ok === 1 ? 'game' : 'games'}.${failed ? ` ${failed} could not be added; see the list below.` : ''}`,
+      failed: 'Could not add:'
+    },
     firstTime: 'First time here? Set up your account',
     setupTitle: 'Set up your staff account',
     setupIntro: 'Use the email an admin added to the staff list and choose a password of at least 8 characters.',
