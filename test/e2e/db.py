@@ -78,8 +78,10 @@ try:
         # --- public site picks the game up with no rebuild
         pub = ctx.new_page()
         pub.on('pageerror', lambda e: errors.append(str(e)))
+        # Read the signature from the page as built, before the browser can re-render it.
+        import re as _re
+        built = _re.search(r'<main[^>]*data-sig="([^"]*)"', urllib.request.urlopen(BASE + '/schedule/').read().decode()).group(1)
         pub.goto(BASE + '/schedule/')
-        built = pub.locator('main').get_attribute('data-sig')
         expect(pub.locator('.card', has_text='Mock Opp')).to_have_count(1)
         check('schedule shows the new game without a rebuild', True)
         check('list signature updated after re-render', pub.locator('main').get_attribute('data-sig') != built)
@@ -133,8 +135,7 @@ try:
 
         page.evaluate("""() => { const s = JSON.parse(sessionStorage.getItem('tis-owls-admin-session')); s.access_token = 'tok-bad'; s.expires_at = Date.now() + 600000; sessionStorage.setItem('tis-owls-admin-session', JSON.stringify(s)); }""")
         page.reload()
-        expect(page.locator('.adm-card').first).to_be_visible()
-        page.locator('.adm-card.is-live [data-act=score][data-side=away][data-delta="1"]').click()
+        # The admin checks the role on load, so a token the server refuses goes straight to sign-in.
         expect(page.locator('h1.page-title')).to_have_text('Staff sign-in')
         check('a rejected token sends staff back to sign-in', True)
         page.fill('#email', 'staff@test.org'); page.fill('#password', 'secret')

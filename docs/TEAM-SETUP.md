@@ -14,6 +14,9 @@
    - Environment variables (only once the database exists): `SUPABASE_URL`, `SUPABASE_ANON_KEY`
 3. Save and deploy. Production branch = `main` -> `https://<project>.pages.dev`.
    Every other branch gets its own preview URL like `https://frontend-hero.<project>.pages.dev`.
+   Cloudflare turns `/` into `-` and **cuts the name to 28 characters**: `backend/replays-takedown-roles`
+   becomes `backend-replays-takedown-rol`. The exact link is in the pull request's checks
+   ("Cloudflare Pages" > Details), so copy it from there instead of guessing.
 5. Later: Custom domains > add `live.tashschool.org`.
 
 Nobody uploads files to Cloudflare by hand. Pushing to GitHub is the deploy.
