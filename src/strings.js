@@ -106,7 +106,8 @@ export default {
       opponent: 'Enter the opponent name.',
       start: 'Choose the start time.',
       youtube: 'That does not look like a YouTube link.',
-      score: 'Scores must be whole numbers, 0 or more.'
+      score: 'Scores must be whole numbers from 0 to 999.',
+      cover: 'Use a full https:// image address with no spaces or brackets.'
     }
   },
   footer: { school: 'Tashkent International School' }

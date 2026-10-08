@@ -7,6 +7,7 @@ import S from '../src/strings.js';
 import * as R from '../src/render.js';
 import { buildIcs } from '../src/ics.js';
 import { fetchSupabaseGames } from '../src/data.js';
+import { gamesSignature } from './signature.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
@@ -90,6 +91,8 @@ for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admi
 await cp(join(root, 'src/assets'), join(dist, 'assets'), { recursive: true });
 await cp(join(root, 'data'), join(dist, 'data'), { recursive: true });
 await write('config.json', JSON.stringify({ name: cfg.name, siteUrl: cfg.siteUrl, heroVideo: cfg.heroVideo, supabase: supabase.url && supabase.anonKey ? supabase : null }, null, 2));
+// Fingerprint of the rendered games, read by scripts/check-rebuild.mjs.
+await write('build-sig.json', JSON.stringify({ games: gamesSignature(games), builtAt: new Date().toISOString() }));
 await write('robots.txt', `User-agent: *\nAllow: /\n`);
 
 console.log(`Built ${games.length} games, ${teamsList.length} teams -> dist/`);

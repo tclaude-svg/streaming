@@ -20,9 +20,16 @@ export const staticGames = () => fetch('/data/games.json', { cache: 'no-store' }
 
 /* ---------- Supabase rows <-> game objects ---------- */
 
+// A cover image address is placed inside CSS url(...) on the page, so only plain https
+// addresses are accepted: no spaces, quotes, parentheses, semicolons or backslashes.
+// The same rule is enforced by the database (games_cover_check in supabase/schema.sql).
+export const isSafeCover = (s) =>
+  typeof s === 'string' && s.length <= 500 && /^https:\/\/[A-Za-z0-9._~:/?#@!$&*+,=%-]+$/.test(s);
+
 export const fromRow = (r) => ({
   id: r.id, team: r.team, opponent: r.opponent, venue: r.venue, start: r.start, status: r.status,
-  homeScore: r.home_score, awayScore: r.away_score, streamId: r.stream_id, replayId: r.replay_id, cover: r.cover
+  homeScore: r.home_score, awayScore: r.away_score, streamId: r.stream_id, replayId: r.replay_id,
+  cover: isSafeCover(r.cover) ? r.cover : null
 });
 
 export const toRow = (g) => ({

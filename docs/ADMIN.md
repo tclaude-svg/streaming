@@ -24,7 +24,8 @@ Changes are saved only in the browser that made them. Use it to try the flow or 
 Uses [Supabase](https://supabase.com) (free tier is enough): email sign-in plus one `games` table.
 
 1. Create a Supabase project. Region: pick the closest to Tashkent.
-2. SQL editor: run `supabase/schema.sql`.
+2. SQL editor: run `supabase/schema.sql`. It is safe to run again later (for example after a pull that changed it):
+   existing games and staff are kept and the rules are replaced with the new version.
 3. Authentication > Providers > Email: **turn off "Allow new users to sign up"**.
    Authentication > Users: add each staff member (invite or "Add user").
 4. SQL editor: `insert into public.staff (email) values ('athletics@...');` for each staff member.
@@ -43,7 +44,25 @@ Uses [Supabase](https://supabase.com) (free tier is enough): email sign-in plus 
   addresses; Netlify, Cloudflare Pages, GitHub Pages and Vercel do). Its link preview image and title in a chat
   are the generic site ones until the next build.
 - The calendar file is made in the browser for games that have no pre-built `.ics`.
-- Rebuilding the site on a schedule (for example every 15 minutes) or on a webhook keeps previews accurate. Not set up yet.
+- A GitHub Action rebuilds the site when the database changed, so previews catch up within about 10 minutes
+  (see "Automatic rebuilds" below).
+
+## Automatic rebuilds
+
+`.github/workflows/rebuild.yml` runs every 10 minutes. It compares the games in the database with the
+fingerprint the last build left at `/build-sig.json` and starts a Cloudflare build only when they differ,
+so quiet days use no builds (Cloudflare's free plan allows 500 builds a month).
+
+Setup, once the database exists:
+1. Cloudflare dashboard > Workers & Pages > the project > Settings > Builds > **Deploy hooks** > add one
+   for branch `main`. Copy the URL (treat it like a password: anyone with it can start builds).
+2. GitHub repo > Settings > Secrets and variables > Actions > add three repository secrets:
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `CF_DEPLOY_HOOK`.
+3. Actions tab > "Rebuild when games change" > **Run workflow** to check it. The log says "Up to date" or
+   "Rebuild triggered".
+
+Until the secrets exist the workflow just reports that no database is configured. A game day with
+frequent score taps uses at most one build per 10 minutes.
 
 ## Try database mode locally
 
@@ -57,8 +76,11 @@ SUPABASE_URL=http://localhost:4010 SUPABASE_ANON_KEY=anon npm run dev
 - Writes need a signed-in staff token; the browser never holds anything more powerful than the anon key.
 - The session is kept in `sessionStorage` (cleared when the tab closes) and refreshed automatically.
 - Do not turn on public sign-up, and do not add the `service_role` key to the repo or the page.
-- The mock server and the browser tests check the client logic. They do not prove the Supabase policies:
-  after running `schema.sql`, check once with a real staff account and once signed out.
+- Cover image addresses must be plain `https://` links (no spaces, quotes or brackets). The database rejects
+  anything else and the site ignores it, because the address is placed inside the page's CSS.
+- The mock server and the browser tests check the client logic. The rules in `schema.sql` were also checked on
+  Postgres 16 with stand-ins for Supabase's roles (visitors read only; signed-in non-staff cannot write).
+  Still check once on the real project with a staff account and once signed out.
 
 ## Tests
 
