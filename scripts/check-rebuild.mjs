@@ -1,7 +1,8 @@
 // Rebuilds the live site only when the database has changed since the last build.
 // Run on a schedule by .github/workflows/rebuild.yml (see docs/ADMIN.md, "Automatic rebuilds").
 //
-// Needs: SUPABASE_URL, SUPABASE_ANON_KEY, CF_DEPLOY_HOOK (Cloudflare Pages deploy hook URL).
+// Needs: CF_DEPLOY_HOOK (Cloudflare Pages deploy hook URL). The database address and public key come
+// from site.config.json; SUPABASE_URL / SUPABASE_ANON_KEY override them if set.
 // Optional: SITE_URL (defaults to siteUrl in site.config.json), DRY_RUN=1 to only report.
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -11,7 +12,9 @@ import { gamesSignature } from './signature.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cfg = JSON.parse(await readFile(join(root, 'site.config.json'), 'utf8'));
-const { SUPABASE_URL, SUPABASE_ANON_KEY, CF_DEPLOY_HOOK, DRY_RUN } = process.env;
+const { CF_DEPLOY_HOOK, DRY_RUN } = process.env;
+const SUPABASE_URL = process.env.SUPABASE_URL || cfg.supabase?.url;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || cfg.supabase?.anonKey;
 const siteUrl = (process.env.SITE_URL || cfg.siteUrl).replace(/\/$/, '');
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {

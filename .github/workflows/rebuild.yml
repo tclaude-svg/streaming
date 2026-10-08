@@ -1,6 +1,7 @@
 # Rebuilds the live site when staff have changed games in the database, so new game pages
-# get their own link preview and calendar file. Does nothing until the three repository
-# secrets below exist (Settings > Secrets and variables > Actions). See docs/ADMIN.md.
+# get their own link preview and calendar file. The database comes from site.config.json; starting a
+# build needs the CF_DEPLOY_HOOK repository secret (Settings > Secrets and variables > Actions).
+# See docs/ADMIN.md.
 name: Rebuild when games change
 
 on:
@@ -26,6 +27,4 @@ jobs:
           node-version-file: .nvmrc
       - run: node scripts/check-rebuild.mjs
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           CF_DEPLOY_HOOK: ${{ secrets.CF_DEPLOY_HOOK }}

@@ -56,12 +56,12 @@ so quiet days use no builds (Cloudflare's free plan allows 500 builds a month).
 Setup, once the database exists:
 1. Cloudflare dashboard > Workers & Pages > the project > Settings > Builds > **Deploy hooks** > add one
    for branch `main`. Copy the URL (treat it like a password: anyone with it can start builds).
-2. GitHub repo > Settings > Secrets and variables > Actions > add three repository secrets:
-   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `CF_DEPLOY_HOOK`.
+2. GitHub repo > Settings > Secrets and variables > Actions > add a repository secret `CF_DEPLOY_HOOK`
+   with that URL. (The database address and public key are read from `site.config.json`.)
 3. Actions tab > "Rebuild when games change" > **Run workflow** to check it. The log says "Up to date" or
    "Rebuild triggered".
 
-Until the secrets exist the workflow just reports that no database is configured. A game day with
+Until `CF_DEPLOY_HOOK` exists the workflow reports the change and fails, which shows as a red run in the Actions tab. A game day with
 frequent score taps uses at most one build per 10 minutes.
 
 ## Try database mode locally
