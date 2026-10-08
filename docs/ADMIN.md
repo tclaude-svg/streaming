@@ -8,10 +8,39 @@ two modes. Which one you get depends on whether the database is configured.
 1. **Add game**: sport and level, opponent, start time (Tashkent time), optional YouTube stream link.
 2. **Go live** when the stream starts. The home page switches to "Live now" and the game page shows the stream.
 3. Tap **+** and **−** to update the score (saved automatically).
-4. **End game** at the final whistle. Later, **Edit** and paste the replay link.
+4. **End game** at the final whistle. If the game had a stream link, the stream becomes the replay
+   automatically (YouTube keeps a live stream as a video). Paste a different replay link with **Edit** only if needed.
 
 Pasting any YouTube address works (`watch?v=`, `youtu.be/`, `/live/`, `/embed/`) or just the 11-character id.
 Scores are optional, so a game with no scorer still works.
+
+## Roles
+
+| | Admin | Scorer |
+|---|---|---|
+| Go live, update the score, end the game | yes | yes |
+| Add, edit and delete games | yes | no |
+| Hide a game from the public site (takedown) | yes | no |
+| Add and remove staff, change roles (**Staff** button) | yes | no |
+
+Admins cannot change or remove their own entry, so nobody locks themselves out by accident.
+The database enforces all of this, not just the buttons.
+
+## Takedown requests
+
+**Hide from site** removes the game from every public list and page right away; staff still see it in the admin,
+marked "Hidden from the public site". Links that were already shared stop working after the next rebuild
+(about 10 minutes with automatic rebuilds). Also make the video private on YouTube, since the site only
+embeds it. **Show on site** brings it back.
+
+## Adding staff
+
+1. An admin opens **Staff**, enters the person's email and picks Admin or Scorer.
+2. The person opens `/admin/`, taps **First time here? Set up your account**, enters that email and a password.
+3. They click the confirmation link Supabase emails them, then sign in.
+
+Only emails on the staff list can create an account; anyone else is refused. Removing someone from the list
+takes away all access at once, even though their account still exists.
 
 ## Preview mode (default, no setup)
 
@@ -26,11 +55,12 @@ Uses [Supabase](https://supabase.com) (free tier is enough): email sign-in plus 
 1. Create a Supabase project. Region: pick the closest to Tashkent.
 2. SQL editor: run `supabase/schema.sql`. It is safe to run again later (for example after a pull that changed it):
    existing games and staff are kept and the rules are replaced with the new version.
-3. SQL editor: `insert into public.staff (email) values ('athletics@...');` for each staff member.
-   Only listed emails can get an account or change games: the schema refuses any other sign-up,
-   even if "Allow new users to sign up" is left on (turning it off as well does no harm).
-4. Authentication > Users: add each staff member ("Add user", with a password they choose). Do this after step 3,
-   or the account is refused.
+3. SQL editor: add the first admin: `insert into public.staff (email, role) values ('athletics@...', 'admin');`
+   Everyone after that is added from the admin page (see "Adding staff"). Only listed emails can get an account
+   or change anything: the schema refuses any other sign-up, so leave "Allow new users to sign up" **on**
+   (it is how listed staff set up their own accounts) and keep "Confirm email" on.
+4. The first admin sets up their account from `/admin/` > **First time here?**, or in Authentication > Users
+   ("Add user", after step 3).
 5. Project settings > API: copy the **Project URL** and the **anon public key**. Never use the `service_role` key.
 6. Put them in `site.config.json` under `supabase` (`url`, `anonKey`), or set the environment variables
    `SUPABASE_URL` and `SUPABASE_ANON_KEY` where the site is built. The anon key is meant to be public;

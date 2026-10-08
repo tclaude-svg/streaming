@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isSafeCover, fromRow } from '../src/data.js';
+import { isSafeCover, fromRow, withReplayFallback, isVisible } from '../src/data.js';
 import { gamesSignature } from '../scripts/signature.mjs';
 
 test('isSafeCover accepts plain https image addresses only', () => {
@@ -38,4 +38,19 @@ test('gamesSignature ignores order and time-zone spelling, notices real changes'
   assert.notEqual(gamesSignature([{ ...a, status: 'live' }, b]), base);
   assert.notEqual(gamesSignature([a, { ...b, replayId: 'dQw4w9WgXcQ' }]), base);
   assert.notEqual(gamesSignature([a]), base);
+});
+
+test('withReplayFallback uses the stream as the replay only for finished games', () => {
+  const g = { id: 'g', status: 'final', streamId: 'dQw4w9WgXcQ', replayId: null };
+  assert.equal(withReplayFallback(g).replayId, 'dQw4w9WgXcQ');
+  assert.equal(withReplayFallback({ ...g, replayId: 'aaaaaaaaaaa' }).replayId, 'aaaaaaaaaaa');
+  assert.equal(withReplayFallback({ ...g, status: 'live' }).replayId, null);
+  assert.equal(withReplayFallback({ ...g, streamId: null }).replayId, null);
+  assert.equal(g.replayId, null, 'input is not changed');
+});
+
+test('isVisible hides taken-down games', () => {
+  assert.equal(isVisible({}), true);
+  assert.equal(isVisible({ hidden: false }), true);
+  assert.equal(isVisible({ hidden: true }), false);
 });

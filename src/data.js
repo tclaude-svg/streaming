@@ -29,14 +29,22 @@ export const isSafeCover = (s) =>
 export const fromRow = (r) => ({
   id: r.id, team: r.team, opponent: r.opponent, venue: r.venue, start: r.start, status: r.status,
   homeScore: r.home_score, awayScore: r.away_score, streamId: r.stream_id, replayId: r.replay_id,
-  cover: isSafeCover(r.cover) ? r.cover : null
+  cover: isSafeCover(r.cover) ? r.cover : null, hidden: Boolean(r.hidden)
 });
 
 export const toRow = (g) => ({
   id: g.id, team: g.team, opponent: g.opponent, venue: g.venue, start: g.start, status: g.status,
   home_score: g.homeScore ?? null, away_score: g.awayScore ?? null,
-  stream_id: g.streamId || null, replay_id: g.replayId || null, cover: g.cover || null
+  stream_id: g.streamId || null, replay_id: g.replayId || null, cover: g.cover || null, hidden: Boolean(g.hidden)
 });
+
+// Mirrors the database rule: a finished game with no replay link uses its live stream's video,
+// because a YouTube live stream becomes its own replay.
+export function withReplayFallback(g) {
+  return g.status === 'final' && !g.replayId && g.streamId ? { ...g, replayId: g.streamId } : g;
+}
+
+export const isVisible = (g) => !g.hidden;
 
 export const hasBackend = (cfg) => Boolean(cfg?.supabase?.url && cfg?.supabase?.anonKey);
 
@@ -56,7 +64,7 @@ export async function loadGames(cfg = {}) {
   if (hasBackend(cfg)) {
     try { return await fetchSupabaseGames(cfg.supabase); } catch { /* fall back to the static file */ }
   }
-  return staticGames();
+  return (await staticGames()).filter(isVisible);
 }
 
 /* ---------- YouTube links ---------- */

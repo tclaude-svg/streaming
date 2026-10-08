@@ -47,6 +47,9 @@ alter table public.games
 
 create index if not exists games_start_idx on public.games ("start");
 
+-- Takedown: a hidden game disappears from the public site at once (staff still see it).
+alter table public.games add column if not exists hidden boolean not null default false;
+
 create or replace function public.touch_updated_at() returns trigger
 language plpgsql set search_path = public as $$
 begin
@@ -60,44 +63,123 @@ create trigger games_touch before update on public.games
 for each row execute function public.touch_updated_at();
 
 -- Staff allow-list. Only people listed here can change games, even if someone
--- manages to create an account. Row level security with no policy means the
--- website itself can never read this table.
+-- manages to create an account. Roles: 'admin' manages everything (games, takedowns, staff);
+-- 'scorer' can only go live, update the score, end the game and set the replay link.
 create table if not exists public.staff (email text primary key);
+alter table public.staff add column if not exists role text not null default 'admin';
+update public.staff set email = lower(btrim(email)) where email <> lower(btrim(email));
+alter table public.staff drop constraint if exists staff_role_check;
+alter table public.staff drop constraint if exists staff_email_check;
+alter table public.staff
+  add constraint staff_role_check  check (role in ('admin', 'scorer')),
+  add constraint staff_email_check check (email = lower(btrim(email)) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' and char_length(email) <= 254);
 alter table public.staff enable row level security;
 
+-- The signed-in person's role, or null when they are not on the list.
+create or replace function public.staff_role() returns text
+language sql stable security definer set search_path = public as $$
+  select role from public.staff where email = lower(auth.jwt() ->> 'email');
+$$;
 create or replace function public.is_staff() returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.staff where lower(email) = lower(auth.jwt() ->> 'email')
-  );
+  select public.staff_role() is not null;
 $$;
-revoke all on function public.is_staff() from public;
-revoke all on function public.is_staff() from anon;
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce(public.staff_role() = 'admin', false);
+$$;
+revoke all on function public.staff_role() from public, anon;
+revoke all on function public.is_staff() from public, anon;
+revoke all on function public.is_admin() from public, anon;
+grant execute on function public.staff_role() to authenticated;
 grant execute on function public.is_staff() to authenticated;
+grant execute on function public.is_admin() to authenticated;
+
+-- Scorers may change only the score, the status and the replay link.
+create or replace function public.guard_scorer_edits() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if public.staff_role() = 'scorer' and (
+    (new.id, new.team, new.opponent, new.venue, new."start", new.stream_id, new.cover, new.hidden)
+    is distinct from
+    (old.id, old.team, old.opponent, old.venue, old."start", old.stream_id, old.cover, old.hidden)
+  ) then
+    raise exception 'Scorers can only change the score, the game status and the replay link';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists games_guard_scorer on public.games;
+create trigger games_guard_scorer before update on public.games
+for each row execute function public.guard_scorer_edits();
+
+-- A YouTube live stream becomes its own replay, so a finished game with no replay link
+-- uses the stream's video until someone pastes a different one.
+create or replace function public.fill_replay_from_stream() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.status = 'final' and new.replay_id is null and new.stream_id is not null then
+    new.replay_id := new.stream_id;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists games_fill_replay on public.games;
+create trigger games_fill_replay before insert or update on public.games
+for each row execute function public.fill_replay_from_stream();
 
 alter table public.games enable row level security;
 
 drop policy if exists "Anyone can read games" on public.games;
+drop policy if exists "Anyone can read visible games" on public.games;
+drop policy if exists "Staff can read all games" on public.games;
 drop policy if exists "Staff can add games" on public.games;
+drop policy if exists "Admins can add games" on public.games;
 drop policy if exists "Staff can update games" on public.games;
 drop policy if exists "Staff can delete games" on public.games;
+drop policy if exists "Admins can delete games" on public.games;
 
-create policy "Anyone can read games" on public.games
-  for select using (true);
+create policy "Anyone can read visible games" on public.games
+  for select to anon, authenticated using (not hidden);
 
-create policy "Staff can add games" on public.games
-  for insert to authenticated with check (public.is_staff());
+create policy "Staff can read all games" on public.games
+  for select to authenticated using (public.is_staff());
+
+create policy "Admins can add games" on public.games
+  for insert to authenticated with check (public.is_admin());
 
 create policy "Staff can update games" on public.games
   for update to authenticated using (public.is_staff()) with check (public.is_staff());
 
-create policy "Staff can delete games" on public.games
-  for delete to authenticated using (public.is_staff());
+create policy "Admins can delete games" on public.games
+  for delete to authenticated using (public.is_admin());
+
+-- Admins manage the staff list from the admin page, but never their own row,
+-- so nobody can lock themselves out or remove the last way in by accident.
+drop policy if exists "Admins can read staff" on public.staff;
+drop policy if exists "Admins can add staff" on public.staff;
+drop policy if exists "Admins can change other staff" on public.staff;
+drop policy if exists "Admins can remove other staff" on public.staff;
+
+create policy "Admins can read staff" on public.staff
+  for select to authenticated using (public.is_admin());
+
+create policy "Admins can add staff" on public.staff
+  for insert to authenticated with check (public.is_admin());
+
+create policy "Admins can change other staff" on public.staff
+  for update to authenticated
+  using (public.is_admin() and email <> lower(auth.jwt() ->> 'email'))
+  with check (public.is_admin() and email <> lower(auth.jwt() ->> 'email'));
+
+create policy "Admins can remove other staff" on public.staff
+  for delete to authenticated using (public.is_admin() and email <> lower(auth.jwt() ->> 'email'));
 
 -- Visitors only ever read. Row level security already blocks writes for the anon role;
 -- removing the table grants as well means a policy mistake later cannot open writes to everyone.
 revoke insert, update, delete, truncate on public.games from anon;
 revoke all on public.staff from anon, authenticated;
+grant select, insert, update, delete on public.staff to authenticated;
 
 -- Only staff-listed emails can get an account at all, so public sign-up is closed even if the
 -- "Allow new users to sign up" switch is left on. Add the email to public.staff first, then create the user.
@@ -116,4 +198,5 @@ create trigger only_staff_accounts before insert on auth.users
 for each row execute function public.only_staff_accounts();
 
 -- Add each staff member (replace with real addresses):
--- insert into public.staff (email) values ('athletics@example.org') on conflict do nothing;
+-- The first admin has to be added here; after that, admins add staff from the admin page.
+-- insert into public.staff (email, role) values ('athletics@example.org', 'admin') on conflict do nothing;

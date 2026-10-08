@@ -14,6 +14,7 @@ const dist = join(root, 'dist');
 const cfg = JSON.parse(await readFile(join(root, 'site.config.json'), 'utf8'));
 const teamsList = JSON.parse(await readFile(join(root, 'data/teams.json'), 'utf8'));
 let { games } = JSON.parse(await readFile(join(root, 'data/games.json'), 'utf8'));
+games = games.filter((g) => !g.hidden); // the database already leaves hidden games out for visitors
 
 // Database settings (public by design: the anon key can only do what row level security allows).
 // Environment variables win over site.config.json so hosting can set them without a commit.

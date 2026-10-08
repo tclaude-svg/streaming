@@ -135,8 +135,7 @@ try:
 
         page.evaluate("""() => { const s = JSON.parse(sessionStorage.getItem('tis-owls-admin-session')); s.access_token = 'tok-bad'; s.expires_at = Date.now() + 600000; sessionStorage.setItem('tis-owls-admin-session', JSON.stringify(s)); }""")
         page.reload()
-        expect(page.locator('.adm-card').first).to_be_visible()
-        page.locator('.adm-card.is-live [data-act=score][data-side=away][data-delta="1"]').click()
+        # The admin checks the role on load, so a token the server refuses goes straight to sign-in.
         expect(page.locator('h1.page-title')).to_have_text('Staff sign-in')
         check('a rejected token sends staff back to sign-in', True)
         page.fill('#email', 'staff@test.org'); page.fill('#password', 'secret')
