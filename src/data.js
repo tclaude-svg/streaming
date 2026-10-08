@@ -48,6 +48,14 @@ export function withReplayFallback(g) {
 
 export const isVisible = (g) => !g.hidden;
 
+// The picture chat apps show when a game's link is shared: its cover photo, else the YouTube
+// thumbnail of its replay or stream, else '' (the site's default image).
+export function shareImage(g) {
+  if (g.cover && /^https:\/\//.test(g.cover) && isSafeCover(g.cover)) return g.cover;
+  const video = (g.status === 'final' && g.replayId) || g.streamId || g.replayId;
+  return video && /^[\w-]{11}$/.test(video) ? `https://i.ytimg.com/vi/${video}/hqdefault.jpg` : '';
+}
+
 export const hasBackend = (cfg) => Boolean(cfg?.supabase?.url && cfg?.supabase?.anonKey);
 
 // Public read (row level security allows SELECT for everyone).

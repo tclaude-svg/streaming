@@ -75,7 +75,7 @@ python3 test/e2e/preview-bundle.py   # builds and walks through the single-file 
 2. Real TIS logo, brand hex codes (placeholders in `:root` of `src/styles.css`) and approved photos.
 3. Self-hosted fonts (currently Google Fonts, marked TODO in `src/render.js`).
 4. Privacy-friendly analytics script, Lighthouse and accessibility audit on real hosting.
-5. Per-game share images and scheduled rebuilds so link previews of new games are accurate.
+5. Per-game share images (cover photo or video thumbnail) are in; scheduled rebuilds need the `CF_DEPLOY_HOOK` secret (docs/ADMIN.md).
 6. Fill the About page text (placeholders in square brackets) once the school decides.
 7. Point `live.tashschool.org` at the Cloudflare Pages project and switch `siteUrl` in `site.config.json` back to it.
 

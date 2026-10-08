@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import S from '../src/strings.js';
 import * as R from '../src/render.js';
 import { buildIcs } from '../src/ics.js';
-import { fetchSupabaseGames } from '../src/data.js';
+import { fetchSupabaseGames, shareImage } from '../src/data.js';
 import { gamesSignature } from './signature.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -60,6 +60,7 @@ for (const g of games) {
     title: R.gameTitle(g),
     description: `${R.teamLabelLong(t)} · ${R.dayLabel(g.start)} ${R.timeLabel(g.start)} · ${g.venue}`,
     ogTitle: `${R.gameTitle(g)} · ${R.teamLabel(t)}`,
+    ogImage: shareImage(g),
     body: R.gameBody(g, games, teams),
     active: 'schedule'
   });

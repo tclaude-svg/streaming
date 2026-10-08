@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isSafeCover, fromRow, withReplayFallback, isVisible } from '../src/data.js';
+import { isSafeCover, fromRow, withReplayFallback, isVisible, shareImage } from '../src/data.js';
 import { gamesSignature } from '../scripts/signature.mjs';
 
 test('isSafeCover accepts plain https image addresses only', () => {
@@ -61,4 +61,14 @@ test('isSafeCover allows the local test server but no other plain http address',
   assert.equal(isSafeCover('http://localhost.evil.example/x.jpg'), false);
   assert.equal(isSafeCover('http://example.org/x.jpg'), false);
   assert.equal(isSafeCover('https://ounaamzialcfsdkgtpkn.supabase.co/storage/v1/object/public/covers/2026-10-08-ab12.jpg'), true);
+});
+
+test('shareImage picks the cover, then the video thumbnail, then the default', () => {
+  const g = { status: 'scheduled', cover: null, streamId: null, replayId: null };
+  assert.equal(shareImage(g), '');
+  assert.equal(shareImage({ ...g, streamId: 'dQw4w9WgXcQ' }), 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+  assert.equal(shareImage({ ...g, status: 'final', streamId: 'aaaaaaaaaaa', replayId: 'bbbbbbbbbbb' }), 'https://i.ytimg.com/vi/bbbbbbbbbbb/hqdefault.jpg');
+  assert.equal(shareImage({ ...g, streamId: 'dQw4w9WgXcQ', cover: 'https://x.supabase.co/storage/v1/object/public/covers/a.jpg' }), 'https://x.supabase.co/storage/v1/object/public/covers/a.jpg');
+  assert.equal(shareImage({ ...g, cover: 'http://localhost:4010/a.jpg' }), '', 'local test covers are never used for sharing');
+  assert.equal(shareImage({ ...g, cover: 'javascript:alert(1)' }), '');
 });
