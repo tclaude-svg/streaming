@@ -124,6 +124,15 @@ Setup, once the database exists:
 Until `CF_DEPLOY_HOOK` exists the workflow reports the change and fails, which shows as a red run in the Actions tab. A game day with
 frequent score taps uses at most one build per 10 minutes.
 
+## Backups
+
+The free Supabase plan has no backups, so `.github/workflows/backup.yml` saves the games every Monday
+(and whenever someone presses **Run workflow**) as a downloadable file kept for 90 days: Actions tab >
+"Weekly backup" > a run > Artifacts > `games-backup`. The file has the same shape as `data/games.json`.
+It uses the public key, so it holds what visitors can see: hidden games, the staff list and the change history
+are not in it. Running it (and the 10-minute rebuild check) also counts as activity, which stops the free
+Supabase project from pausing after a quiet week.
+
 ## Try database mode locally
 
 ```bash

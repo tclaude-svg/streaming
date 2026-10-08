@@ -1,0 +1,29 @@
+# Weekly copy of the games data, kept for 90 days as a downloadable file on the workflow run
+# (Actions tab > "Weekly backup" > a run > Artifacts). Also runs from the "Run workflow" button.
+# It also counts as activity, which keeps the free Supabase project from pausing.
+name: Weekly backup
+
+on:
+  schedule:
+    - cron: '17 3 * * 1'   # Mondays 03:17 UTC (08:17 in Tashkent)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/backup.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: games-backup
+          path: backups/
+          retention-days: 90
+          if-no-files-found: error
