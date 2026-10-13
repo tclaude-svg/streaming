@@ -6,7 +6,7 @@ export default {
   metaDescription: 'Watch Tashkent International School Owls games live or as replays. Football, basketball and volleyball.',
   skip: 'Skip to content',
   cta: 'Find a game',
-  nav: { schedule: 'Live & Schedule', replays: 'Replays', teams: 'Teams', about: 'About' },
+  nav: { schedule: 'Live & Schedule', replays: 'Replays', teams: 'Teams', player: 'Player login', about: 'About' },
   sports: { football: 'Football', basketball: 'Basketball', volleyball: 'Volleyball' },
   levels: { varsity: 'Varsity', jv: 'Junior Varsity' },
   levelsShort: { varsity: 'Varsity', jv: 'JV' },

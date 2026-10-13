@@ -1,6 +1,6 @@
 // Player login (placeholder). Players sign in to see their own statistics.
 //
-// Not linked from the public site: the live streams, schedule and replays stay open to everyone
+// Linked from the main menu. Only the signed-in player sees their stats; the live streams, schedule and replays stay open to everyone
 // without an account. Statistics are not built yet; the stat tiles below show "—" until the
 // `player_stats` table (supabase/schema.sql) is filled and wired up here.
 import S from './strings.js';

@@ -74,10 +74,10 @@ await page('/admin/', {
   body: `<div class="wrap page admin" id="admin-root"><noscript><p class="empty">JavaScript is needed for the admin area.</p></noscript></div>`
 });
 
-// --- player login (placeholder; not linked from the site, kept out of search engines)
+// --- player login (placeholder; in the menu, but stats are only shown to the signed-in player)
 await page('/player/', {
   title: S.player.title,
-  noindex: true,
+  active: 'player',
   script: '/js/player.js',
   body: `<div class="wrap page admin" id="player-root"><noscript><p class="empty">JavaScript is needed for player login.</p></noscript></div>`
 });
