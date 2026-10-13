@@ -67,3 +67,12 @@ npm test                          # unit tests (links, time zones, ids, calendar
 python3 test/e2e/preview.py       # browser test, preview mode (needs python playwright + chromium)
 python3 test/e2e/db.py            # browser test, database mode against the mock server
 ```
+
+## Player login (placeholder)
+
+`/player/` is a sign-in page for players to see their own statistics (points, assists, rebounds,
+steals, blocks). It is not linked from the site and is hidden from search engines; watching games
+needs no account. For now it only shows the form (disabled until the database is connected) and
+empty stat tiles. The `players` and `player_stats` tables at the end of `supabase/schema.sql` are a
+first draft: each player can read only their own rows, and staff manage everything. How statistics
+are entered and calculated is still to be decided.

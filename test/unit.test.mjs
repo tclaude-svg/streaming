@@ -74,3 +74,13 @@ test('buildIcs makes a valid single-event calendar file', () => {
   assert.match(ics, /UID:2026-10-17-football-varsity-x@live\.tashschool\.org\r\n/);
   assert.match(ics, /URL:https:\/\/live\.tashschool\.org\/game\/2026-10-17-football-varsity-x\/\r\n/);
 });
+
+test('player login placeholder renders the sign-in form and empty stats', async () => {
+  const P = await import('../src/player.js');
+  const off = P.signInView({ enabled: false });
+  assert.match(off, /disabled/);
+  assert.match(off, /Player login/);
+  const stats = P.statsView('a@b.org');
+  for (const k of P.STAT_KEYS) assert.ok(stats.includes('—'), k);
+  assert.match(stats, /a@b\.org/);
+});

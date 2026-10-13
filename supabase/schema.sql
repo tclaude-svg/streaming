@@ -58,3 +58,45 @@ create policy "Staff can delete games" on public.games
 
 -- Add each staff member (replace with real addresses):
 -- insert into public.staff (email) values ('athletics@example.org');
+
+-- ---------------------------------------------------------------------------
+-- Player login (placeholder). Not used by the site yet; statistics are still
+-- being designed. Each player signs in with their own Supabase account and
+-- can read only their own rows. Staff manage everything.
+-- ---------------------------------------------------------------------------
+
+create table public.players (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid unique references auth.users (id) on delete set null,
+  team         text not null check (team ~ '^[a-z]+-[a-z]+$'),
+  display_name text not null check (char_length(display_name) between 1 and 80),
+  created_at   timestamptz not null default now()
+);
+
+create table public.player_stats (
+  player_id uuid not null references public.players (id) on delete cascade,
+  game_id   text not null references public.games (id) on delete cascade,
+  points    integer not null default 0 check (points >= 0),
+  assists   integer not null default 0 check (assists >= 0),
+  rebounds  integer not null default 0 check (rebounds >= 0),
+  steals    integer not null default 0 check (steals >= 0),
+  blocks    integer not null default 0 check (blocks >= 0),
+  primary key (player_id, game_id)
+);
+
+alter table public.players enable row level security;
+alter table public.player_stats enable row level security;
+
+create policy "Players read their own profile" on public.players
+  for select to authenticated using (user_id = auth.uid() or public.is_staff());
+create policy "Staff manage players" on public.players
+  for all to authenticated using (public.is_staff()) with check (public.is_staff());
+
+create policy "Players read their own stats" on public.player_stats
+  for select to authenticated using (
+    public.is_staff() or exists (
+      select 1 from public.players p where p.id = player_id and p.user_id = auth.uid()
+    )
+  );
+create policy "Staff manage stats" on public.player_stats
+  for all to authenticated using (public.is_staff()) with check (public.is_staff());
