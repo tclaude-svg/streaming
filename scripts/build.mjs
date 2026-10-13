@@ -74,6 +74,14 @@ await page('/admin/', {
   body: `<div class="wrap page admin" id="admin-root"><noscript><p class="empty">JavaScript is needed for the admin area.</p></noscript></div>`
 });
 
+// --- player login (placeholder; in the menu, but stats are only shown to the signed-in player)
+await page('/player/', {
+  title: S.player.title,
+  active: 'player',
+  script: '/js/player.js',
+  body: `<div class="wrap page admin" id="player-root"><noscript><p class="empty">JavaScript is needed for player login.</p></noscript></div>`
+});
+
 // --- 404 page; also renders game pages created after this build (see src/fallback.js)
 await write('404.html', R.layout({
   siteUrl: cfg.siteUrl,
@@ -86,7 +94,7 @@ await write('404.html', R.layout({
 
 // --- static files
 await cp(join(root, 'src/styles.css'), join(dist, 'css/styles.css'));
-for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admin.js', 'fallback.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
+for (const f of ['app.js', 'render.js', 'strings.js', 'data.js', 'ics.js', 'admin.js', 'player.js', 'fallback.js']) await cp(join(root, 'src', f), join(dist, 'js', f));
 await cp(join(root, 'src/assets'), join(dist, 'assets'), { recursive: true });
 await cp(join(root, 'data'), join(dist, 'data'), { recursive: true });
 await write('config.json', JSON.stringify({ name: cfg.name, siteUrl: cfg.siteUrl, heroVideo: cfg.heroVideo, supabase: supabase.url && supabase.anonKey ? supabase : null }, null, 2));

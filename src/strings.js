@@ -6,7 +6,7 @@ export default {
   metaDescription: 'Watch Tashkent International School Owls games live or as replays. Football, basketball and volleyball.',
   skip: 'Skip to content',
   cta: 'Find a game',
-  nav: { schedule: 'Live & Schedule', replays: 'Replays', teams: 'Teams', about: 'About' },
+  nav: { schedule: 'Live & Schedule', replays: 'Replays', teams: 'Teams', player: 'Player login', about: 'About' },
   sports: { football: 'Football', basketball: 'Basketball', volleyball: 'Volleyball' },
   levels: { varsity: 'Varsity', jv: 'Junior Varsity' },
   levelsShort: { varsity: 'Varsity', jv: 'JV' },
@@ -108,6 +108,22 @@ export default {
       youtube: 'That does not look like a YouTube link.',
       score: 'Scores must be whole numbers, 0 or more.'
     }
+  },
+  player: {
+    title: 'Player login',
+    signInTitle: 'Player login',
+    intro: 'Players can sign in to see their own statistics: points, assists, rebounds, steals and more.',
+    notReady: 'Player accounts are coming soon. Sign-in is not open yet.',
+    publicNote: 'You do not need an account to watch live games, replays or the schedule.',
+    email: 'Email',
+    password: 'Password',
+    signIn: 'Sign in',
+    signOut: 'Sign out',
+    signInFailed: 'Could not sign in:',
+    signedInAs: 'Signed in as',
+    statsTitle: 'My statistics',
+    statsComingSoon: 'Statistics are coming soon. Your numbers will appear here once games are recorded.',
+    stats: { points: 'Points', assists: 'Assists', rebounds: 'Rebounds', steals: 'Steals', blocks: 'Blocks', games: 'Games played' }
   },
   footer: { school: 'Tashkent International School' }
 };
